@@ -79,6 +79,12 @@ git rebase --continue
 git push origin feature/your-branch-name
 ```
 
+If you already pushed before rebasing, the rebase rewrites history so you'll need to force push. Always use `--force-with-lease` instead of `--force` — it's safer because it will refuse to push if someone else pushed to the same branch in the meantime:
+
+```bash
+git push --force-with-lease origin feature/your-branch-name
+```
+
 Then open a Pull Request on GitHub targeting `main`.
 
 - PR title should follow the same convention as commits: `feat: add login page`
