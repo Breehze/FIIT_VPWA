@@ -1,0 +1,19 @@
+{
+  "name": "vpwa",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Slack clone",
+  "license": "ISC",
+  "scripts": {
+    "dev:frontend": "pnpm --filter @vpwa/frontend dev",
+    "build:frontend": "pnpm --filter @vpwa/frontend build"
+  },
+  "devEngines": {
+    "packageManager": {
+      "name": "pnpm",
+      "version": "12.4.2",
+      "onFail": "download"
+    }
+  },
+  "packageManager": "pnpm@12.4.2"
+}
