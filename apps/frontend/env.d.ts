@@ -1,3 +1,5 @@
+/// <reference types="quasar" />
+
 /**
  * Add types (that are not auto-magically added by Quasar CLI already)
  * for your custom variables to avoid TypeScript errors, like dynamic
