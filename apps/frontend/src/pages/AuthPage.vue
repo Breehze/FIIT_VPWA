@@ -20,17 +20,20 @@
   import LoginForm from '@/components/LoginForm.vue';
   import RegisterForm from '@/components/RegisterForm.vue';
   import { ref } from 'vue';
+  import { useAuth } from '@/composables/useAuth';
+
+  const { login, register, currentUser } = useAuth();
 
   const isLoginForm = ref(true);
 
-  function loginHandler(login : {username:string, password:string}): void{
-    console.log(login.username);
-    console.log(login.password);
+  async function loginHandler(loginInfo : {username:string, password:string}): Promise<void>{
+    await login(loginInfo);
+    console.log(currentUser.value);
   }
 
-  function registerHandler(login : {username:string, password:string}): void{
-    console.log(login.username);
-    console.log(login.password);
+  async function registerHandler( registerInfo : {username:string, password:string}): Promise<void>{
+    await register(registerInfo);
+    isLoginForm.value = true;
   }
 
 
