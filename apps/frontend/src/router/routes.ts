@@ -6,11 +6,16 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/layouts/MainLayout.vue'),
     children: [
       { path: '', component: () => import('@/pages/IndexPage.vue') },
-      { path: 'auth', component: () => import('@/pages/AuthPage.vue') },
       { path: 'chat', component: () => import('@/pages/MainPage.vue') },
     ],
   },
-
+  {
+  path: '/auth',
+    component: () => import('@/layouts/AuthLayout.vue'),
+    children: [
+      { path: '', component: () => import('@/pages/AuthPage.vue') },
+    ],
+  },
   {
     path: '/:catchAll(.*)*',
     component: () => import('@/pages/ErrorNotFound.vue'),
