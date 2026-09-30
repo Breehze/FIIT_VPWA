@@ -27,6 +27,6 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 
-const leftDrawerOpen = ref(false);
-const rightDrawerOpen = ref(false);
+const leftDrawerOpen = ref(true);
+const rightDrawerOpen = ref(true);
 </script>
