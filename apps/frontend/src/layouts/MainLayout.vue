@@ -6,6 +6,7 @@
       side="left"
       bordered
     >
+      <div id="left-drawer"></div>
     </q-drawer>
 
     <q-drawer
@@ -14,6 +15,7 @@
       side="right"
       bordered
     >
+      <div id="right-drawer"></div>
     </q-drawer>
 
     <q-page-container>
