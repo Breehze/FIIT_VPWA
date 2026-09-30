@@ -1,37 +1,37 @@
 <template>
   <q-page class="auth-page flex flex-center q-pa-md">
-    <div class="auth-container">
-      <div class="brand flex flex-center">
-        <div class="brand-logo">✦</div>
-        <h1>Lilac</h1>
+    <div class="auth-container full-width">
+      <div class="brand flex flex-center q-mb-md">
+        <div class="brand-logo flex flex-center">✦</div>
+        <h1 class="q-ma-none">Lilac</h1>
       </div>
       <div v-if="isLoginForm">
-        <div class="auth-header text-center">
-          <h2>Welcome back! ✨</h2>
-          <p>Sign in to continue chatting</p>
+        <div class="auth-header text-center q-mb-lg">
+          <h2 class="q-ma-none">Welcome back! ✨</h2>
+          <p class="q-ma-none">Sign in to continue chatting</p>
         </div>
-        <div class="auth-form">
+        <q-card class="auth-form q-pa-lg q-mb-lg" flat>
           <LoginForm @submit-login="loginHandler" />
-          <p class="auth-switch">
+          <p class="auth-switch text-center q-mt-md q-mb-none">
             New here?
             <span class="auth-switch-link" @click="isLoginForm = false">Create an account</span>
           </p>
-        </div>
+        </q-card>
       </div>
       <div v-else>
-        <div class="auth-header text-center">
-          <h2>Create your account 🌸</h2>
-          <p>Join the conversation</p>
+        <div class="auth-header text-center q-mb-lg">
+          <h2 class="q-ma-none">Create your account 🌸</h2>
+          <p class="q-ma-none">Join the conversation</p>
         </div>
-        <div class="auth-form">
+        <q-card class="auth-form q-pa-lg q-mb-lg" flat>
           <RegisterForm @submit-register="registerHandler" />
-          <p class="auth-switch">
+          <p class="auth-switch text-center q-mt-md q-mb-none">
             Already have an account?
             <span class="auth-switch-link" @click="isLoginForm = true">Sign in</span>
           </p>
-        </div>
+        </q-card>
       </div>
-      <div class="stars" aria-hidden="true">
+      <div class="stars row justify-center items-center" aria-hidden="true">
         <span>✦</span>
         <span class="middle-star">✦</span>
         <span>✦</span>
@@ -66,19 +66,16 @@ async function registerHandler(registerInfo: {
 
 <style scoped lang="scss">
 .auth-container {
-  width: 100%;
   max-width: 400px;
 }
 
 .brand {
   gap: 10px;
-  margin-bottom: 32px;
 
   h1 {
     font-family: Pacifico, cursive;
     font-size: 32px;
     color: $lilac-700;
-    margin: 0;
     line-height: 1.2;
     font-weight: normal;
   }
@@ -91,34 +88,25 @@ async function registerHandler(registerInfo: {
   color: white;
   border-radius: 12px;
   font-size: 18px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
 
 .auth-header {
-  margin-bottom: 24px;
   h2 {
     font-size: 26px;
     font-weight: 700;
     color: $lilac-800;
     line-height: 1.3;
-    margin: 0;
   }
 
   p {
     font-size: 15px;
     color: $lilac-700;
-    margin: 0;
   }
 }
 
 .auth-switch {
-  text-align: center;
   font-size: 14px;
   color: $lilac-400;
-  margin-top: 20px;
-  margin-bottom: 0;
 
   .auth-switch-link {
     color: $lilac-600;
@@ -128,22 +116,15 @@ async function registerHandler(registerInfo: {
 }
 
 .auth-form {
-  background: white;
-  padding: 30px;
   border-radius: 20px;
   border: 1px solid $lilac-100;
-  margin-bottom: 30px;
 }
 
 .auth-page {
-  min-height: 100vh;
   background: $lilac-50;
 }
 
 .stars {
-  display: flex;
-  justify-content: center;
-  align-items: center;
   gap: 12px;
   color: $lilac-400;
 

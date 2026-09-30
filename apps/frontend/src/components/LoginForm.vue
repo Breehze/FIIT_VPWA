@@ -1,7 +1,7 @@
 <template>
   <q-form @submit="submitForm">
-    <div class="form-field">
-      <label>Email</label>
+    <div class="q-mb-md">
+      <label class="form-label block q-mb-xs">Email</label>
       <q-input
         class="lilac-input"
         v-model="email"
@@ -13,13 +13,13 @@
         hideBottomSpace
       />
     </div>
-    <div class="form-field">
-      <label>Password</label>
+    <div class="q-mb-md">
+      <label class="form-label block q-mb-xs">Password</label>
       <q-input
         class="lilac-input"
         v-model="pw"
         :type="showPassword ? 'text' : 'password'"
-        placeholder="••••••••"
+        placeholder="Enter your password"
         outlined
         color="primary"
         :rules="[(val) => !!val || 'Password is required!']"
@@ -33,7 +33,14 @@
         </template>
       </q-input>
     </div>
-    <q-btn class="login-button" label="Sign in" type="submit" color="primary" unelevated no-caps />
+    <q-btn
+      class="login-button full-width q-mt-xs"
+      label="Sign in"
+      type="submit"
+      color="primary"
+      unelevated
+      no-caps
+    />
   </q-form>
 </template>
 
@@ -55,15 +62,10 @@ function submitForm(): void {
 </script>
 
 <style scoped lang="scss">
-.form-field {
-  margin-bottom: 18px;
-  label {
-    display: block;
-    font-size: 14px;
-    font-weight: 500;
-    color: $lilac-700;
-    margin-bottom: 6xp;
-  }
+.form-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: $lilac-700;
 }
 
 .lilac-input :deep(.q-field__control) {
@@ -73,11 +75,9 @@ function submitForm(): void {
 }
 
 .login-button {
-  margin-top: 6px;
   height: 48px;
   border-radius: 20px;
   font-size: 15px;
   font-weight: 700;
-  width: 100%;
 }
 </style>
