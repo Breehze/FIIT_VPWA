@@ -31,7 +31,7 @@
           </p>
         </q-card>
       </div>
-      <div class="stars row justify-center items-center" aria-hidden="true">
+      <div v-if="isLoginForm" class="stars row justify-center items-center" aria-hidden="true">
         <span>✦</span>
         <span class="middle-star">✦</span>
         <span>✦</span>
@@ -56,12 +56,16 @@ async function loginHandler(loginInfo: { email: string; password: string }): Pro
 }
 
 async function registerHandler(registerInfo: {
-  username: string;
+  nickname: string;
   password: string;
+  name: string;
+  lastName: string;
+  email: string;
 }): Promise<void> {
   await register(registerInfo);
   isLoginForm.value = true;
 }
+
 </script>
 
 <style scoped lang="scss">

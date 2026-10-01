@@ -34,7 +34,7 @@
       </q-input>
     </div>
     <q-btn
-      class="login-button full-width q-mt-xs"
+      class="auth-button full-width q-mt-xs"
       label="Sign in"
       type="submit"
       color="primary"
@@ -61,23 +61,3 @@ function submitForm(): void {
 }
 </script>
 
-<style scoped lang="scss">
-.form-label {
-  font-size: 14px;
-  font-weight: 500;
-  color: $lilac-700;
-}
-
-.lilac-input :deep(.q-field__control) {
-  border-radius: 15px;
-  height: 48px;
-  background: $lilac-50;
-}
-
-.login-button {
-  height: 48px;
-  border-radius: 20px;
-  font-size: 15px;
-  font-weight: 700;
-}
-</style>
