@@ -3,8 +3,8 @@ import type { User } from '@vpwa/shared';
 const delay = (ms = 400) => new Promise((resolve) => setTimeout(resolve, ms));
 
 export interface LoginDto {
-  username: string;
-  password?: string;
+  email: string;
+  password: string;
 }
 
 export interface RegisterDto {
@@ -26,8 +26,8 @@ class AuthService {
         id: '123e4567-e89b-12d3-a456-426614174000',
         name: 'John',
         lastName: 'Doe',
-        nick: credentials.username,
-        email: `${credentials.username.toLowerCase()}@vpwa.sk`,
+        nick: 'john',
+        email: credentials.email,
         state: 'Online',
         mentionOnlyNotif: false,
       };
