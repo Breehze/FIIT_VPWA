@@ -8,7 +8,7 @@ export interface LoginDto {
 }
 
 export interface RegisterDto {
-  username: string;
+  nickname: string;
   password?: string;
   name?: string;
   lastName?: string;
@@ -47,10 +47,10 @@ class AuthService {
 
       const newUser: User = {
         id: '987fcdeb-51a2-43f7-9abc-123456789def',
-        name: data.name || data.username,
+        name: data.name || data.nickname,
         lastName: data.lastName || '',
-        nick: data.username,
-        email: data.email || `${data.username.toLowerCase()}@vpwa.sk`,
+        nick: data.nickname,
+        email: data.email || `${data.nickname.toLowerCase()}@vpwa.sk`,
         state: 'Online',
         mentionOnlyNotif: false,
       };
