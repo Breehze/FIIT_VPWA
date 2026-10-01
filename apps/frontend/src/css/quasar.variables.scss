@@ -12,9 +12,56 @@
 // to match your app's branding.
 // Tip: Use the "Theme Builder" on Quasar's documentation website.
 
-$primary: #1976d2;
-$secondary: #26a69a;
-$accent: #9c27b0;
+// Lilac
+$lilac-50: #faf7ff;
+$lilac-100: #f3edff;
+$lilac-150: #ece3ff;
+$lilac-200: #dfd0ff;
+$lilac-300: #c9b3ff;
+$lilac-400: #b08ef8;
+$lilac-500: #9470e8;
+$lilac-600: #7a52d0;
+$lilac-700: #6040b0;
+$lilac-800: #3d2580;
+
+// Blush
+$blush-50: #fff5f8;
+$blush-100: #ffe8f0;
+$blush-200: #ffd0e3;
+$blush-300: #ffaacf;
+$blush-400: #ff7eb5;
+$blush-500: #e8559a;
+
+// Peach
+$peach-50: #fff7f0;
+$peach-100: #ffeedd;
+$peach-200: #fdd5b0;
+$peach-300: #fbb882;
+
+// Mint
+$mint-100: #edfdf5;
+$mint-200: #d1fae5;
+$mint-400: #4ade80;
+
+// Sky
+$sky-100: #f0f8ff;
+$sky-200: #bae6fd;
+$sky-400: #38bdf8;
+
+// Cream
+$cream-50: #fffef7;
+$cream-100: #fffbeb;
+
+// User status colors
+$status-online: #4ade80;
+$status-dnd: #f87171;
+$status-offline: #cbd5e1;
+
+// Quasar Theme
+
+$primary: $lilac-500;
+$secondary: $blush-400;
+$accent: $lilac-600;
 
 $dark: #1d1d1d;
 $dark-page: #121212;
