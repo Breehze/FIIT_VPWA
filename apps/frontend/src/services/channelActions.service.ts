@@ -54,6 +54,24 @@ const DEFAULT_INVITES: InvitedChannel[] = [
       createdAt: new Date().toISOString(),
     },
   },
+  {
+    invite: {
+      id: 'inv-2',
+      inviterId: '888e4567-e89b-12d3-a456-426614174888',
+      inviteeId: '123e4567-e89b-12d3-a456-426614174000',
+      channelId: 'ch-5',
+      createdAt: new Date().toISOString(),
+      status: 'pending',
+    },
+    channel: {
+      id: 'ch-5',
+      name: 'announcements',
+      type: 'public',
+      owner: '888e4567-e89b-12d3-a456-426614174888',
+      lastActivity: new Date().toISOString(),
+      createdAt: new Date().toISOString(),
+    },
+  },
 ];
 
 class ChannelActionsService {
