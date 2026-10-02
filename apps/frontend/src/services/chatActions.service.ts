@@ -1,0 +1,281 @@
+import type { ContentType, Msg, User } from '@vpwa/shared';
+
+const STORAGE_KEY_MESSAGES = 'mock_messages';
+
+export const MOCK_USERS: User[] = [
+  {
+    id: '123e4567-e89b-12d3-a456-426614174000',
+    name: 'John',
+    lastName: 'Doe',
+    nick: 'john',
+    email: 'john@example.com',
+    state: 'Online',
+    mentionOnlyNotif: false,
+  },
+  {
+    id: '999e4567-e89b-12d3-a456-426614174999',
+    name: 'Alice',
+    lastName: 'Smith',
+    nick: 'alice',
+    email: 'alice@example.com',
+    state: 'Online',
+    mentionOnlyNotif: false,
+  },
+  {
+    id: '888e4567-e89b-12d3-a456-426614174888',
+    name: 'Bob',
+    lastName: 'Jones',
+    nick: 'bob',
+    email: 'bob@example.com',
+    state: 'Online',
+    mentionOnlyNotif: false,
+  },
+];
+
+const createTimestamp = (minutesAgo: number): string => {
+  return new Date(Date.now() - minutesAgo * 60 * 1000).toISOString();
+};
+
+const DEFAULT_MESSAGES: Msg[] = [
+  {
+    id: 1,
+    channelId: 'ch-1',
+    senderId: '999e4567-e89b-12d3-a456-426614174999',
+    createdAt: createTimestamp(180),
+    contentType: 'text',
+    textContent: 'Welcome to the general channel everyone!',
+    cdnLink: null,
+  },
+  {
+    id: 2,
+    channelId: 'ch-1',
+    senderId: '888e4567-e89b-12d3-a456-426614174888',
+    createdAt: createTimestamp(170),
+    contentType: 'text',
+    textContent: 'Hey Alice! Good to see you.',
+    cdnLink: null,
+  },
+  {
+    id: 3,
+    channelId: 'ch-1',
+    senderId: '123e4567-e89b-12d3-a456-426614174000',
+    createdAt: createTimestamp(160),
+    contentType: 'text',
+    textContent: 'Hello folks, happy to connect!',
+    cdnLink: null,
+  },
+  {
+    id: 4,
+    channelId: 'ch-1',
+    senderId: '999e4567-e89b-12d3-a456-426614174999',
+    createdAt: createTimestamp(150),
+    contentType: 'text',
+    textContent: 'Has anyone started on the project specs yet?',
+    cdnLink: null,
+  },
+  {
+    id: 5,
+    channelId: 'ch-1',
+    senderId: '888e4567-e89b-12d3-a456-426614174888',
+    createdAt: createTimestamp(140),
+    contentType: 'text',
+    textContent: 'Yes, looking through the VPWA requirements right now.',
+    cdnLink: null,
+  },
+  {
+    id: 6,
+    channelId: 'ch-1',
+    senderId: '123e4567-e89b-12d3-a456-426614174000',
+    createdAt: createTimestamp(130),
+    contentType: 'text',
+    textContent: 'I set up the base monorepo and layout.',
+    cdnLink: null,
+  },
+  {
+    id: 7,
+    channelId: 'ch-1',
+    senderId: '999e4567-e89b-12d3-a456-426614174999',
+    createdAt: createTimestamp(120),
+    contentType: 'text',
+    textContent: 'Great! Are channels working?',
+    cdnLink: null,
+  },
+  {
+    id: 8,
+    channelId: 'ch-1',
+    senderId: '123e4567-e89b-12d3-a456-426614174000',
+    createdAt: createTimestamp(110),
+    contentType: 'text',
+    textContent: 'Yes, channel list, dialog, and invites are ready.',
+    cdnLink: null,
+  },
+  {
+    id: 9,
+    channelId: 'ch-1',
+    senderId: '888e4567-e89b-12d3-a456-426614174888',
+    createdAt: createTimestamp(100),
+    contentType: 'text',
+    textContent: 'Next up is the chat feed and infinite scroll.',
+    cdnLink: null,
+  },
+  {
+    id: 10,
+    channelId: 'ch-1',
+    senderId: '999e4567-e89b-12d3-a456-426614174999',
+    createdAt: createTimestamp(90),
+    contentType: 'text',
+    textContent: 'Make sure to handle the reverse scroll properly.',
+    cdnLink: null,
+  },
+  {
+    id: 11,
+    channelId: 'ch-1',
+    senderId: '123e4567-e89b-12d3-a456-426614174000',
+    createdAt: createTimestamp(80),
+    contentType: 'text',
+    textContent: 'Testing it right now with q-infinite-scroll.',
+    cdnLink: null,
+  },
+  {
+    id: 12,
+    channelId: 'ch-1',
+    senderId: '888e4567-e89b-12d3-a456-426614174888',
+    createdAt: createTimestamp(70),
+    contentType: 'text',
+    textContent: 'Looks promising!',
+    cdnLink: null,
+  },
+  {
+    id: 13,
+    channelId: 'ch-1',
+    senderId: '123e4567-e89b-12d3-a456-426614174000',
+    createdAt: createTimestamp(60),
+    contentType: 'text',
+    textContent: 'We also need to map the senders to users.',
+    cdnLink: null,
+  },
+  {
+    id: 14,
+    channelId: 'ch-1',
+    senderId: '999e4567-e89b-12d3-a456-426614174999',
+    createdAt: createTimestamp(50),
+    contentType: 'text',
+    textContent: 'Yes, using the User model from @vpwa/shared.',
+    cdnLink: null,
+  },
+  {
+    id: 15,
+    channelId: 'ch-1',
+    senderId: '888e4567-e89b-12d3-a456-426614174888',
+    createdAt: createTimestamp(40),
+    contentType: 'text',
+    textContent: 'Everything aligns with the specification.',
+    cdnLink: null,
+  },
+  {
+    id: 16,
+    channelId: 'ch-1',
+    senderId: '123e4567-e89b-12d3-a456-426614174000',
+    createdAt: createTimestamp(30),
+    contentType: 'text',
+    textContent: 'Almost done preparing the mock data.',
+    cdnLink: null,
+  },
+  {
+    id: 17,
+    channelId: 'ch-1',
+    senderId: '999e4567-e89b-12d3-a456-426614174999',
+    createdAt: createTimestamp(20),
+    contentType: 'text',
+    textContent: 'Ready to test the feed loading batches.',
+    cdnLink: null,
+  },
+  {
+    id: 18,
+    channelId: 'ch-1',
+    senderId: '123e4567-e89b-12d3-a456-426614174000',
+    createdAt: createTimestamp(2),
+    contentType: 'text',
+    textContent: 'Working on the template implementation right now.',
+    cdnLink: null,
+  },
+  {
+    id: 19,
+    channelId: 'ch-2',
+    senderId: '888e4567-e89b-12d3-a456-426614174888',
+    createdAt: createTimestamp(40),
+    contentType: 'text',
+    textContent: 'Random channel for casual conversation.',
+    cdnLink: null,
+  },
+  {
+    id: 20,
+    channelId: 'ch-3',
+    senderId: '123e4567-e89b-12d3-a456-426614174000',
+    createdAt: createTimestamp(30),
+    contentType: 'text',
+    textContent: 'Private channel for the dev team.',
+    cdnLink: null,
+  },
+];
+
+class ChatActionsService {
+  getUsers(): User[] {
+    return MOCK_USERS;
+  }
+
+  getUserById(id: string): User | undefined {
+    return MOCK_USERS.find((u) => u.id === id);
+  }
+
+  getAllMessages(): Msg[] {
+    const raw = localStorage.getItem(STORAGE_KEY_MESSAGES);
+    if (!raw) {
+      this.saveMessages(DEFAULT_MESSAGES);
+      return DEFAULT_MESSAGES;
+    }
+    return JSON.parse(raw);
+  }
+
+  saveMessages(messages: Msg[]): void {
+    localStorage.setItem(STORAGE_KEY_MESSAGES, JSON.stringify(messages));
+  }
+
+  getChannelMessages(channelId: string, limit = 10, beforeId?: number): Msg[] {
+    const all = this.getAllMessages();
+    let channelMsgs = all.filter((m) => m.channelId === channelId);
+
+    channelMsgs.sort((a, b) => a.id - b.id);
+
+    if (beforeId !== undefined) {
+      channelMsgs = channelMsgs.filter((m) => m.id < beforeId);
+    }
+
+    if (channelMsgs.length <= limit) {
+      return channelMsgs;
+    }
+
+    return channelMsgs.slice(channelMsgs.length - limit);
+  }
+
+  sendMessage(channelId: string, senderId: string, textContent: string, contentType: ContentType = 'text'): Msg {
+    const all = this.getAllMessages();
+    const nextId = all.reduce((max, m) => (m.id > max ? m.id : max), 0) + 1;
+
+    const newMsg: Msg = {
+      id: nextId,
+      channelId,
+      senderId,
+      createdAt: new Date().toISOString(),
+      contentType,
+      textContent,
+      cdnLink: null,
+    };
+
+    all.push(newMsg);
+    this.saveMessages(all);
+    return newMsg;
+  }
+}
+
+export const chatActionsService = new ChatActionsService();
