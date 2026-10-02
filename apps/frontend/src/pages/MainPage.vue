@@ -1,6 +1,7 @@
 <template>
-  <q-page>
+  <q-page class="column" style="height: 100vh; overflow: hidden">
     <ChannelHeader :channel="activeChannel" />
+    <ChatFeed />
     <Teleport to="#left-drawer" v-if="isMounted">
       <LeftSidebar />
     </Teleport>
@@ -17,6 +18,7 @@ import LeftSidebar from '@/components/LeftSidebar.vue';
 import RightSidebar from '@/components/RightSidebar.vue';
 import ChannelHeader from '@/components/ChannelHeader.vue';
 import { useChannels } from '@/composables/useChannels';
+import ChatFeed from '@/components/ChatFeed.vue';
 
 const isMounted = ref(false);
 
