@@ -24,7 +24,7 @@
               <q-btn flat round dense size="sm" icon="check" color="positive"
                 @click="emit('accept', item.invite.id)"
               />
-              <q-btn flat round dense size="sm" icon="close"color="negative"
+              <q-btn flat round dense size="sm" icon="close" color="negative"
                 @click="emit('reject', item.invite.id)"
               />
             </div>

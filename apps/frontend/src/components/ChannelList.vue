@@ -1,7 +1,8 @@
 <template>
   <q-list dense>
-    <q-item-label header class="text-weight-bold text-uppercase text-caption">
-      Channels
+    <q-item-label header class="text-weight-bold text-uppercase text-caption row items-center justify-between">
+      <span>Channels</span>
+      <q-btn flat round dense size="sm" icon="add" @click="emit('createClick')" />
     </q-item-label>
 
     <q-item
@@ -33,5 +34,6 @@ defineProps<{
 
 const emit = defineEmits<{
   (e: 'selectChannel', channel: Channel): void;
+  (e: 'createClick'): void;
 }>();
 </script>
