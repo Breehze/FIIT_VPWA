@@ -1,6 +1,6 @@
 <template>
   <q-page>
-    <h1>This will be main page</h1>
+    <ChannelHeader :channel="activeChannel" />
     <Teleport to="#left-drawer" v-if="isMounted">
       <LeftSidebar />
     </Teleport>
@@ -15,8 +15,12 @@
 import { ref, onMounted } from 'vue';
 import LeftSidebar from '@/components/LeftSidebar.vue';
 import RightSidebar from '@/components/RightSidebar.vue';
+import ChannelHeader from '@/components/ChannelHeader.vue';
+import { useChannels } from '@/composables/useChannels';
 
 const isMounted = ref(false);
+
+const { activeChannel } = useChannels();
 
 onMounted(() => {
   isMounted.value = true;
