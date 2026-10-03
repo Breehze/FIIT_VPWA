@@ -1,20 +1,10 @@
 <template>
   <q-layout view="lhh lpR lfr">
-    <q-drawer
-      v-model="leftDrawerOpen"
-      show-if-above
-      side="left"
-      bordered
-    >
-      <div id="left-drawer"></div>
+    <q-drawer v-model="leftDrawerOpen" show-if-above side="left" bordered>
+      <div id="left-drawer" class="full-height"></div>
     </q-drawer>
 
-    <q-drawer
-      v-model="rightDrawerOpen"
-      show-if-above
-      side="right"
-      bordered
-    >
+    <q-drawer v-model="rightDrawerOpen" show-if-above side="right" bordered>
       <div id="right-drawer"></div>
     </q-drawer>
 
