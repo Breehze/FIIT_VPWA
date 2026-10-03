@@ -1,4 +1,5 @@
 import type { User } from '@vpwa/shared';
+import { MOCK_USERS } from '@/mocks';
 
 const delay = (ms = 400) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -22,7 +23,11 @@ class AuthService {
     if (USE_MOCK) {
       await delay(400);
 
-      const mockUser: User = {
+      const matched = MOCK_USERS.find(
+        (u) => u.email.toLowerCase() === credentials.email.toLowerCase(),
+      );
+
+      const fallback = MOCK_USERS[0] ?? {
         id: '123e4567-e89b-12d3-a456-426614174000',
         name: 'John',
         lastName: 'Doe',
@@ -32,10 +37,15 @@ class AuthService {
         mentionOnlyNotif: false,
       };
 
-      localStorage.setItem('auth_token', 'mock-jwt-token-xyz');
-      localStorage.setItem('auth_user', JSON.stringify(mockUser));
+      const user: User = matched ?? {
+        ...fallback,
+        email: credentials.email,
+      };
 
-      return mockUser;
+      localStorage.setItem('auth_token', 'mock-jwt-token-xyz');
+      localStorage.setItem('auth_user', JSON.stringify(user));
+
+      return user;
     }
 
     throw new Error('Backend server is not connected yet.');
@@ -46,7 +56,7 @@ class AuthService {
       await delay(400);
 
       const newUser: User = {
-        id: '987fcdeb-51a2-43f7-9abc-123456789def',
+        id: crypto.randomUUID(),
         name: data.name || data.nickname,
         lastName: data.lastName || '',
         nick: data.nickname,
@@ -55,6 +65,7 @@ class AuthService {
         mentionOnlyNotif: false,
       };
 
+      MOCK_USERS.push(newUser);
       localStorage.setItem('auth_token', 'mock-jwt-token-xyz');
       localStorage.setItem('auth_user', JSON.stringify(newUser));
 
