@@ -1,7 +1,10 @@
 <template>
   <q-page class="column" style="height: 100vh; overflow: hidden">
+
     <ChannelHeader :channel="activeChannel" />
     <ChatFeed />
+    <CmdLine/>
+
     <Teleport to="#left-drawer" v-if="isMounted">
       <LeftSidebar />
     </Teleport>
@@ -19,6 +22,7 @@ import RightSidebar from '@/components/RightSidebar.vue';
 import ChannelHeader from '@/components/ChannelHeader.vue';
 import { useChannels } from '@/composables/useChannels';
 import ChatFeed from '@/components/ChatFeed.vue';
+import CmdLine from '@/components/CmdLine.vue';
 
 const isMounted = ref(false);
 

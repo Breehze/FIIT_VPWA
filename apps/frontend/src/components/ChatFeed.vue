@@ -1,5 +1,5 @@
 <template>
-  <div class="col scroll q-px-xl q-py-md">
+  <div ref="scrollContainer" class="col scroll q-px-xl q-py-md">
     <q-infinite-scroll :key="activeChannel?.id ?? ''" reverse @load="onLoad">
       <q-chat-message
         v-for="msg in activeMsgs"
@@ -19,20 +19,35 @@
 </template>
 
 <script setup lang="ts">
-import { useChat } from '@/composables/useChat';
-import { useChannels } from '@/composables/useChannels';
+  import { watch, nextTick, ref } from 'vue';
+  import { useChat } from '@/composables/useChat';
+  import { useChannels } from '@/composables/useChannels';
 
-const { activeChannel } = useChannels();
-const { activeMsgs, hasMoreMsgs, loadFollowingMsgs, getSender } = useChat();
+  const { activeChannel } = useChannels();
+  const { activeMsgs, hasMoreMsgs,scrollTriggers , loadFollowingMsgs, getSender } = useChat();
 
-function getInitials(senderId: string): string {
-  const user = getSender(senderId);
-  if (!user) return '?';
-  return `${user.name.charAt(0)}${user.lastName.charAt(0)}`.toUpperCase();
-}
+  const scrollContainer = ref<HTMLElement | null>(null);
 
-function onLoad(index: number, done: (stop?: boolean) => void) {
-  loadFollowingMsgs();
-  done(!hasMoreMsgs.value);
-}
+  function getInitials(senderId: string): string {
+    const user = getSender(senderId);
+    if (!user) return '?';
+    return `${user.name.charAt(0)}${user.lastName.charAt(0)}`.toUpperCase();
+  }
+
+  function onLoad(index: number, done: (stop?: boolean) => void) {
+    loadFollowingMsgs();
+    done(!hasMoreMsgs.value);
+  }
+
+  watch(
+    scrollTriggers,
+    async () => {
+      await nextTick(
+        () =>{
+          if(scrollContainer.value){
+            scrollContainer.value.scrollTo({top: scrollContainer.value.scrollHeight});
+        }
+      })
+    }
+  )
 </script>

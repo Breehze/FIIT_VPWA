@@ -2,12 +2,15 @@ import { ref, watch } from 'vue'
 import type { Msg } from '@vpwa/shared'
 import { chatActionsService } from '@/services/chatActions.service'
 import { useChannels } from '@/composables/useChannels'
+import { useAuth } from './useAuth'
+
+const activeMsgs = ref<Msg[]>([]);
+const hasMoreMsgs = ref(true);
+const scrollTriggers = ref(0);
 
 export function useChat(){
   const { activeChannel } = useChannels();
-
-  const activeMsgs = ref<Msg[]>([]);
-  const hasMoreMsgs = ref(true);
+  const { currentUser } = useAuth();
 
   watch(
     () => activeChannel.value?.id,
@@ -45,6 +48,17 @@ export function useChat(){
     }
   }
 
+  function sendMsg(msg : string){
+    const channelId = activeChannel.value?.id;
+    const sender = currentUser.value?.id;
+    if(!channelId || !sender){
+      return;
+    }
+    const newMsg = chatActionsService.sendMessage(channelId,sender,msg);
+    activeMsgs.value.push(newMsg);
+    scrollTriggers.value++;
+  }
+
   function getSender(senderId: string){
     return chatActionsService.getUserById(senderId);
   }
@@ -52,8 +66,10 @@ export function useChat(){
   return{
     activeMsgs,
     hasMoreMsgs,
+    scrollTriggers,
     loadInitialMsgs,
     loadFollowingMsgs,
-    getSender
+    getSender,
+    sendMsg
   }
 }
