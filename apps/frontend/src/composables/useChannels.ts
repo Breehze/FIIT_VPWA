@@ -1,5 +1,5 @@
 import { ref, computed } from 'vue';
-import type { Channel, ChannelType } from '@vpwa/shared';
+import type { Channel, ChannelType, User } from '@vpwa/shared';
 import { channelActionsService, type InvitedChannel } from '@/services/channelActions.service';
 import { useAuth } from '@/composables/useAuth';
 
@@ -12,6 +12,11 @@ export function useChannels() {
 
   const activeChannel = computed(() => {
     return channels.value.find((c) => c.id === activeChannelId.value) || null;
+  });
+
+  const activeChannelMembers = computed<User[]>(() => {
+    if (!activeChannelId.value) return [];
+    return channelActionsService.getChannelMembers(activeChannelId.value);
   });
 
   function selectChannel(channelId: string) {
@@ -61,6 +66,7 @@ export function useChannels() {
     invitedChannels,
     activeChannelId,
     activeChannel,
+    activeChannelMembers,
     selectChannel,
     createChannel,
     leaveChannel,
