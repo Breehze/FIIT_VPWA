@@ -1,34 +1,41 @@
 <template>
   <div v-if="invites.length > 0">
-    <q-card flat bordered class="bg-amber-1 q-pa-xs">
-      <q-item-label header class="text-weight-bold text-caption text-amber-9 q-py-xs">
-        Invitations ({{ invites.length }})
-      </q-item-label>
+    <q-card class="invites-card">
+      <q-item-label header class="invites-heading text-uppercase"> ✨ Invitations </q-item-label>
 
       <q-list dense>
-        <q-item v-for="item in invites" :key="item.invite.id" class="q-px-xs">
-          <q-item-section avatar style="min-width: 24px">
-            <q-icon
-              :name="item.channel.type === 'private' ? 'lock' : 'tag'"
-              size="xs"
-              color="amber-9"
-            />
-          </q-item-section>
+        <q-item v-for="item in invites" :key="item.invite.id">
+          <div class="row items-center full-width">
+            <div class="row items-center q-gutter-xs">
+              <span class="invite-icon">
+                {{ item.channel.type === 'private' ? '🔒' : '#' }}
+              </span>
 
-          <q-item-section class="text-weight-medium">
-            {{ item.channel.name }}
-          </q-item-section>
+              <span class="text-weight-medium">
+                {{ item.channel.name }}
+              </span>
+            </div>
 
-          <q-item-section side>
-            <div class="row q-gutter-xs">
-              <q-btn flat round dense size="sm" icon="check" color="positive"
+            <div class="text-caption full-width q-mb-sm">You've been invited!</div>
+
+            <div class="invite-actions row full-width q-mb-sm">
+              <q-btn
+                class="accept-button col q-mr-sm"
+                unelevated
+                no-caps
+                label="Accept"
                 @click="emit('accept', item.invite.id)"
               />
-              <q-btn flat round dense size="sm" icon="close" color="negative"
+
+              <q-btn
+                class="decline-button col"
+                unelevated
+                no-caps
+                label="Decline"
                 @click="emit('reject', item.invite.id)"
               />
             </div>
-          </q-item-section>
+          </div>
         </q-item>
       </q-list>
     </q-card>
@@ -47,3 +54,40 @@ const emit = defineEmits<{
   (e: 'reject', inviteId: string): void;
 }>();
 </script>
+
+<style scoped lang="scss">
+.invites-card {
+  background: $blush-50;
+  border: 1px solid $blush-200;
+  border-radius: 15px;
+  box-shadow: 0 3px 12px rgba(80, 55, 130, 0.15);
+}
+
+.invites-heading {
+  color: $blush-500;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.invite-icon {
+  font-size: 15px;
+}
+
+.accept-button,
+.decline-button {
+  height: 30px;
+  border-radius: 12px;
+  font-size: 12px;
+}
+
+.accept-button {
+  color: white;
+  background: linear-gradient(90deg, $blush-400, $lilac-400);
+}
+
+.decline-button {
+  color: $blush-500;
+  background: white;
+  border: 1px solid $blush-200;
+}
+</style>

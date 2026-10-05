@@ -1,20 +1,19 @@
 <template>
   <q-list dense>
-    <q-item-label header class="text-weight-bold text-uppercase text-caption row items-center justify-between">
-      <span>Channels</span>
-      <q-btn flat round dense size="sm" icon="add" @click="emit('createClick')" />
-    </q-item-label>
+    <q-item-label header class="channels-heading text-uppercase"> Channels </q-item-label>
 
     <q-item
       v-for="channel in channels"
       :key="channel.id"
       clickable
       :active="channel.id === activeChannelId"
-      active-class="bg-grey-3 text-primary text-weight-bold"
+      class="channel"
+      active-class="channel-active"
       @click="emit('selectChannel', channel)"
     >
       <q-item-section avatar style="min-width: 28px">
-        <q-icon :name="channel.type === 'private' ? 'lock' : 'tag'" size="xs" />
+        <span v-if="channel.type === 'private'">🔒</span>
+        <q-icon v-else name="tag" size="xs" />
       </q-item-section>
 
       <q-item-section>
@@ -34,6 +33,21 @@ defineProps<{
 
 const emit = defineEmits<{
   (e: 'selectChannel', channel: Channel): void;
-  (e: 'createClick'): void;
 }>();
 </script>
+
+<style scoped lang="scss">
+.channels-heading {
+  color: $lilac-600;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.channel {
+  border-radius: 10px;
+}
+.channel-active {
+  color: $lilac-700;
+  background: white;
+}
+</style>
