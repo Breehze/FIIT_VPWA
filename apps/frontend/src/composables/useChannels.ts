@@ -3,7 +3,7 @@ import type { Channel, ChannelType, User } from '@vpwa/shared';
 import { channelActionsService, type InvitedChannel } from '@/services/channelActions.service';
 import { useAuth } from '@/composables/useAuth';
 
-const channels = ref<Channel[]>(channelActionsService.getChannels());
+const channels = ref<Channel[]>(channelActionsService.getUserChannels());
 const invitedChannels = ref<InvitedChannel[]>(channelActionsService.getInvitedChannels());
 const activeChannelId = ref<string | null>(channels.value[0]?.id || null);
 
@@ -23,34 +23,46 @@ export function useChannels() {
     activeChannelId.value = channelId;
   }
 
+  function refreshChannels() {
+    channels.value = channelActionsService.getUserChannels(currentUser.value?.id);
+  }
+
   function createChannel(name: string, type: ChannelType) {
     if (!currentUser.value) return;
     const newChannel = channelActionsService.createChannel(name, type, currentUser.value.id);
-    channels.value = channelActionsService.getChannels();
+    refreshChannels();
     activeChannelId.value = newChannel.id;
     return newChannel;
   }
 
+  function joinChannel(name: string, type: ChannelType = 'public') {
+    const joined = channelActionsService.joinChannel(name, type, currentUser.value?.id);
+    refreshChannels();
+    selectChannel(joined.id);
+    return joined;
+  }
+
   function leaveChannel(channelId: string) {
-    channelActionsService.leaveChannel(channelId);
-    channels.value = channelActionsService.getChannels();
-    if (activeChannelId.value === channelId) {
-      activeChannelId.value = channels.value[0]?.id || null;
-    }
+    channelActionsService.leaveChannel(channelId, currentUser.value?.id);
+    afterChannelRemoved(channelId);
   }
 
   function deleteChannel(channelId: string) {
-    channelActionsService.deleteChannel(channelId);
-    channels.value = channelActionsService.getChannels();
+    channelActionsService.deleteChannel(channelId, currentUser.value?.id);
+    afterChannelRemoved(channelId);
+  }
+
+  function afterChannelRemoved(channelId: string) {
+    refreshChannels();
     if (activeChannelId.value === channelId) {
       activeChannelId.value = channels.value[0]?.id || null;
     }
   }
 
   function acceptInvite(inviteId: string) {
-    const joinedChannel = channelActionsService.acceptInvite(inviteId);
+    const joinedChannel = channelActionsService.acceptInvite(inviteId, currentUser.value?.id);
     invitedChannels.value = channelActionsService.getInvitedChannels();
-    channels.value = channelActionsService.getChannels();
+    refreshChannels();
     if (joinedChannel) {
       activeChannelId.value = joinedChannel.id;
     }
@@ -69,6 +81,7 @@ export function useChannels() {
     activeChannelMembers,
     selectChannel,
     createChannel,
+    joinChannel,
     leaveChannel,
     deleteChannel,
     acceptInvite,
