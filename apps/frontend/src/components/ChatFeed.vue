@@ -7,6 +7,7 @@
         :name="getSender(msg.senderId)?.name"
         :text="[msg.textContent]"
         :stamp="new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })"
+        :bg-color="isMentioned(msg.textContent) ? 'amber-2' : undefined"
       >
         <template #avatar>
           <q-avatar color="primary" text-color="white" class="q-message-avatar q-message-avatar--received">
@@ -22,9 +23,11 @@
   import { watch, nextTick, ref } from 'vue';
   import { useChat } from '@/composables/useChat';
   import { useChannels } from '@/composables/useChannels';
+  import { useAuth } from '@/composables/useAuth';
 
   const { activeChannel } = useChannels();
-  const { activeMsgs, hasMoreMsgs,scrollTriggers , loadFollowingMsgs, getSender } = useChat();
+  const { currentUser } = useAuth();
+  const { activeMsgs, hasMoreMsgs, scrollTriggers , loadFollowingMsgs, getSender } = useChat();
 
   const scrollContainer = ref<HTMLElement | null>(null);
 
@@ -37,6 +40,14 @@
   function onLoad(index: number, done: (stop?: boolean) => void) {
     loadFollowingMsgs();
     done(!hasMoreMsgs.value);
+  }
+
+  function isMentioned(msgText : string) : boolean {
+    const nick = currentUser.value?.nick;
+    if(!nick){
+      return false;
+    }
+    return new RegExp(`@${nick}\\b`).test(msgText);
   }
 
   watch(

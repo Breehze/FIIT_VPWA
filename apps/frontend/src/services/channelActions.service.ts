@@ -1,5 +1,11 @@
-import type { Channel, ChannelType } from '@vpwa/shared';
-import { DEFAULT_CHANNELS, DEFAULT_INVITES, type InvitedChannel } from '@/mocks';
+import type { Channel, ChannelType, User } from '@vpwa/shared';
+import {
+  DEFAULT_CHANNELS,
+  DEFAULT_INVITES,
+  DEFAULT_CHANNEL_MEMBERS,
+  MOCK_USERS,
+  type InvitedChannel,
+} from '@/mocks';
 
 export type { InvitedChannel };
 
@@ -75,6 +81,11 @@ class ChannelActionsService {
   rejectInvite(inviteId: string): void {
     const invites = this.getInvitedChannels().filter((item) => item.invite.id !== inviteId);
     this.saveInvitedChannels(invites);
+  }
+
+  getChannelMembers(channelId: string): User[] {
+    const userIds = DEFAULT_CHANNEL_MEMBERS[channelId] ?? [];
+    return MOCK_USERS.filter((user) => userIds.includes(user.id));
   }
 }
 
