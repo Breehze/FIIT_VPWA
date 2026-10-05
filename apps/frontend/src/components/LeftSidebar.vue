@@ -1,5 +1,5 @@
 <template>
-  <div class="left-sidebar column full-height q-pa-sm">
+  <div class="left-sidebar column window-height q-pa-sm">
     <div class="brand row items-center q-ma-md">
       <div class="brand-logo flex flex-center">✦</div>
       <h1 class="q-ma-none">Lilac</h1>
@@ -17,26 +17,36 @@
       :active-channel-id="activeChannelId"
       @select-channel="onSelectChannel"
     />
-  </div>
+
+    <q-btn class="q-mt-auto" @click="logout">Logout</q-btn>
+</div>
 </template>
 
 <script setup lang="ts">
-import { useAuth } from '@/composables/useAuth';
-import { useUserActions } from '@/composables/useUserActions';
-import { useChannels } from '@/composables/useChannels';
-import ProfileCard from './ProfileCard.vue';
-import PendingInvites from './PendingInvites.vue';
-import ChannelList from './ChannelList.vue';
-import type { Channel } from '@vpwa/shared';
+  import { useAuth } from '@/composables/useAuth';
+  import { useUserActions } from '@/composables/useUserActions';
+  import { useChannels } from '@/composables/useChannels';
+  import ProfileCard from './ProfileCard.vue';
+  import PendingInvites from './PendingInvites.vue';
+  import ChannelList from './ChannelList.vue';
+  import type { Channel } from '@vpwa/shared';
 
-const { currentUser } = useAuth();
-const { updateStatus } = useUserActions();
-const { channels, invitedChannels, activeChannelId, selectChannel, acceptInvite, rejectInvite } =
-  useChannels();
 
-function onSelectChannel(channel: Channel) {
-  selectChannel(channel.id);
-}
+  const { currentUser, logout } = useAuth();
+  const { updateStatus } = useUserActions();
+  const {
+    channels,
+    invitedChannels,
+    activeChannelId,
+    selectChannel,
+    acceptInvite,
+    rejectInvite,
+  } = useChannels();
+
+  function onSelectChannel(channel: Channel) {
+    selectChannel(channel.id);
+  }
+
 </script>
 
 <style scoped lang="scss">

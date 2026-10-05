@@ -2,10 +2,10 @@
 
 ## Prehľad implementácie prípadov použitia (TODO)
 
-- [ ] **1. Registrácia, prihlásenie a odhlásenie používateľa**
+- [x] **1. Registrácia, prihlásenie a odhlásenie používateľa**
   - [x] Registrácia používateľa (meno, priezvisko, nickName, email, heslo)
   - [x] Prihlásenie používateľa
-  - [ ] Odhlásenie používateľa
+  - [x] Odhlásenie používateľa
 - [ ] **2. Správa a zoznam kanálov**
   - [x] Zoznam kanálov, ktorých je používateľ členom
   - [x] Rozlíšenie verejných (`#`) a súkromných (`🔒`) kanálov
