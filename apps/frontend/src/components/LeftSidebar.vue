@@ -1,5 +1,5 @@
 <template>
-  <div class="left-sidebar column window-height q-pa-sm">
+  <div class="left-sidebar column no-wrap overflow-hidden window-height q-pa-sm">
     <div class="brand row items-center q-ma-md">
       <div class="brand-logo flex flex-center">✦</div>
       <h1 class="q-ma-none">Lilac</h1>
@@ -12,7 +12,7 @@
       @reject="rejectInvite"
     />
     <ChannelList
-      class="q-mt-sm"
+      class="col scroll q-mt-sm"
       :channels="channels"
       :active-channel-id="activeChannelId"
       @select-channel="onSelectChannel"
