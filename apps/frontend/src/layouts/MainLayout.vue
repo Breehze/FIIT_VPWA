@@ -4,7 +4,7 @@
       <div id="left-drawer" class="full-height"></div>
     </q-drawer>
 
-    <q-drawer v-model="rightDrawerOpen" show-if-above side="right" bordered>
+    <q-drawer v-model="showMemberList" show-if-above side="right" bordered>
       <div id="right-drawer"></div>
     </q-drawer>
 
@@ -15,8 +15,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+  import { ref } from 'vue';
+  import { useCommands } from '@/composables/useCommands';
 
-const leftDrawerOpen = ref(true);
-const rightDrawerOpen = ref(true);
+  const { showMemberList } = useCommands();
+
+  const leftDrawerOpen = ref(true);
 </script>

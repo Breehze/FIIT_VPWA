@@ -1,5 +1,8 @@
+import { ref } from 'vue';
 import { useChannels } from './useChannels';
 import { useAuth } from './useAuth';
+
+const showMemberList = ref(false);
 
 export function useCommands() {
   const { currentUser } = useAuth();
@@ -22,8 +25,13 @@ export function useCommands() {
           leaveChannel(channel.id);
           break;
         case 'invite':
+          break;
         case 'revoke':
+          break;
         case 'kick':
+          break;
+        case 'list':
+          showMemberList.value = !showMemberList.value;
           break;
       }
     } catch (err) {
@@ -32,5 +40,5 @@ export function useCommands() {
     return null;
   }
 
-  return { execCommand };
+  return {  showMemberList, execCommand };
 }
