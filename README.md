@@ -19,15 +19,15 @@
   - [x] Fixný príkazový riadok ukotvený na spodku aplikácie
   - [x] Odosielanie správ do kanála, v ktorom je používateľ členom
 - [ ] **4. Správa kanálov cez príkazy (Command Line)**
-  - [ ] Príkaz `/join channelName [private]` (vytvorenie alebo pripojenie do kanála)
+  - [x] Príkaz `/join channelName [private]` (vytvorenie alebo pripojenie do kanála)
   - [ ] Príkaz `/invite nickName` (pozvanie používateľa do kanála)
   - [ ] Príkaz `/revoke nickName` (odobratie používateľa zo súkromného kanála správcom)
   - [ ] Príkaz `/kick nickName` (vyhodenie používateľa: správca okamžite, členovia hlasovaním po 3 hlasoch)
   - [ ] Obnovenie prístupu pre vyhodeného používateľa cez príkaz `/invite`
-  - [ ] Príkaz `/quit` (zatvorenie/zrušenie kanála správcom)
+  - [x] Príkaz `/quit` (zatvorenie/zrušenie kanála správcom)
   - [ ] Validácia unikátnosti nickName a channelName
-- [ ] **5. Zrušenie členstva v kanáli cez príkaz**
-  - [ ] Príkaz `/cancel` (používateľ opustí kanál; ak je správcom, kanál zaniká)
+- [x] **5. Zrušenie členstva v kanáli cez príkaz**
+  - [x] Príkaz `/cancel` (používateľ opustí kanál; ak je správcom, kanál zaniká)
 - [x] **6. Adresovanie správ a zmienky (@nickname)**
   - [x] Adresovanie správy konkrétnemu používateľovi cez `@nickname`
   - [x] Zvýraznenie adresovanej správy pre daného používateľa v zozname správ

@@ -23,9 +23,11 @@
   import { ref, computed } from 'vue';
   import { useChat } from '@/composables/useChat';
   import { useChannels } from '@/composables/useChannels';
+  import { useCommands } from '@/composables/useCommands';
 
   const { sendMsg } = useChat();
   const { activeChannelMembers } = useChannels();
+  const { execCommand } = useCommands();
 
   const typed = ref('');
   const mentionMatch = computed(() => {
@@ -45,7 +47,12 @@
   function onSubmit(){
     const inputMsg = typed.value.trim();
     if(!inputMsg){ return; }
-    sendMsg(inputMsg);
+    if(inputMsg.startsWith('/')){
+      execCommand(inputMsg);
+    }else{
+      sendMsg(inputMsg);
+    }
+
     typed.value = '';
   }
 
