@@ -43,9 +43,9 @@
   - [x] Nastavenie a zobrazenie stavu (Online, DND, Offline)
   - [ ] Režim DND: potlačenie prichádzajúcich notifikácií
   - [ ] Režim Offline: pozastavenie prichádzajúcich správ a automatická synchronizácia po návrate do Online
-- [ ] **10. Zoznam členov kanála**
-  - [ ] Príkaz `/list` (otvorenie panelu so zoznamom členov aktuálneho kanála)
-  - [ ] Zobrazenie členov so stavom a označením správcu
+- [x] **10. Zoznam členov kanála**
+  - [x] Príkaz `/list` (otvorenie panelu so zoznamom členov aktuálneho kanála)
+  - [x] Zobrazenie členov so stavom a označením správcu
 - [ ] **11. Indikátor písania a náhľad rozpísanej správy (Draft Peek)**
   - [ ] Indikátor v stavovej lište o tom, kto aktuálne píše správu (napr. "Ed is typing...")
   - [ ] Živý náhľad rozpísaného textu v reálnom čase po kliknutí na nickName používateľa
