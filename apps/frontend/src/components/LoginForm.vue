@@ -9,7 +9,10 @@
         placeholder="you@example.com"
         outlined
         color="primary"
-        :rules="[(val) => !!val || 'Email is required!']"
+        :rules="[
+          (val) => !!val || 'Email is required!',
+          (val) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val) || 'Enter a valid email address!',
+          ]"
         hideBottomSpace
       />
     </div>
@@ -22,7 +25,10 @@
         placeholder="Enter your password"
         outlined
         color="primary"
-        :rules="[(val) => !!val || 'Password is required!']"
+        :rules="[
+          (val) => !!val || 'Password is required!',
+          (val) => val.length >= 8 || 'Password must contain at least 8 characters!',
+        ]"
         hideBottomSpace
       >
         <template #append>
@@ -60,4 +66,3 @@ function submitForm(): void {
   });
 }
 </script>
-

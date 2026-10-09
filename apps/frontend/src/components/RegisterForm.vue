@@ -54,7 +54,10 @@
           placeholder="john.doe@gmail.com"
           outlined
           color="primary"
-          :rules="[(val) => !!val || 'Email is required!']"
+          :rules="[
+            (val) => !!val || 'Email is required!',
+            (val) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val) || 'Enter a valid email address!',
+          ]"
           hide-bottom-space
         />
       </div>
@@ -67,7 +70,10 @@
           placeholder="Enter your password"
           outlined
           color="primary"
-          :rules="[(val) => !!val || 'Password is required!']"
+          :rules="[
+            (val) => !!val || 'Password is required!',
+            (val) => val.length >= 8 || 'Password must contain at least 8 characters!',
+          ]"
           hide-bottom-space
         >
           <template #append>
