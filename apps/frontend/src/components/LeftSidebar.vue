@@ -1,7 +1,7 @@
 <template>
   <div class="left-sidebar column no-wrap overflow-hidden window-height q-pa-sm">
     <div class="brand row items-center q-ma-md">
-      <div class="brand-logo flex flex-center">✦</div>
+      <div class="brand-logo flex flex-center">🌸</div>
       <h1 class="q-ma-none">Lilac</h1>
     </div>
     <ProfileCard :user="currentUser" @status-change="updateStatus" />
@@ -15,38 +15,42 @@
       class="col scroll q-mt-sm"
       :channels="channels"
       :active-channel-id="activeChannelId"
+      :current-user-id="currentUser?.id"
       @select-channel="onSelectChannel"
+      @create-channel="showCreateChannel = true"
     />
+    <CreateChannelDialog v-model="showCreateChannel" />
 
-    <q-btn class="q-mt-auto" @click="logout">Logout</q-btn>
-</div>
+    <q-separator class="q-mt-auto q-mb-md" />
+
+    <q-btn class="logout-button q-mb-sm" no-caps unelevated @click="logout">
+      <q-icon name="logout" class="q-mr-sm" />
+      <span>Log out</span>
+    </q-btn>
+  </div>
 </template>
 
 <script setup lang="ts">
-  import { useAuth } from '@/composables/useAuth';
-  import { useUserActions } from '@/composables/useUserActions';
-  import { useChannels } from '@/composables/useChannels';
-  import ProfileCard from './ProfileCard.vue';
-  import PendingInvites from './PendingInvites.vue';
-  import ChannelList from './ChannelList.vue';
-  import type { Channel } from '@vpwa/shared';
+import { useAuth } from '@/composables/useAuth';
+import { useUserActions } from '@/composables/useUserActions';
+import { useChannels } from '@/composables/useChannels';
+import ProfileCard from './ProfileCard.vue';
+import PendingInvites from './PendingInvites.vue';
+import ChannelList from './ChannelList.vue';
+import CreateChannelDialog from '@/components/CreateChannelDialog.vue';
+import type { Channel } from '@vpwa/shared';
+import { ref } from 'vue';
 
+const { currentUser, logout } = useAuth();
+const { updateStatus } = useUserActions();
+const { channels, invitedChannels, activeChannelId, selectChannel, acceptInvite, rejectInvite } =
+  useChannels();
 
-  const { currentUser, logout } = useAuth();
-  const { updateStatus } = useUserActions();
-  const {
-    channels,
-    invitedChannels,
-    activeChannelId,
-    selectChannel,
-    acceptInvite,
-    rejectInvite,
-  } = useChannels();
+const showCreateChannel = ref(false);
 
-  function onSelectChannel(channel: Channel) {
-    selectChannel(channel.id);
-  }
-
+function onSelectChannel(channel: Channel) {
+  selectChannel(channel.id);
+}
 </script>
 
 <style scoped lang="scss">
@@ -73,5 +77,22 @@
   color: white;
   border-radius: 10px;
   font-size: 16px;
+}
+
+.logout-button {
+  background: $lilac-50;
+  border-radius: 12px;
+  border: 1px solid transparent;
+  box-shadow: 0 3px 12px rgba(80, 55, 130, 0.15);
+
+  &:hover {
+    :deep(.q-focus-helper) {
+      opacity: 0;
+    }
+
+    background: $blush-50;
+    color: $blush-500;
+    border-color: $peach-300;
+  }
 }
 </style>
