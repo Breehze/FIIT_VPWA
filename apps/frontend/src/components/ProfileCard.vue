@@ -154,7 +154,7 @@ const emit = defineEmits<{
 }
 
 .status-dropdown.offline {
-  background: color-mix(in srgb, $status-offline 15%, white);
+  background: color-mix(in srgb, $status-offline 25%, white);
 }
 
 .status-dropdown.dnd {

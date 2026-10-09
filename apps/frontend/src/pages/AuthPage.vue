@@ -2,7 +2,7 @@
   <q-page class="auth-page flex flex-center q-pa-md">
     <div class="auth-container full-width">
       <div class="brand flex flex-center q-mb-md">
-        <div class="brand-logo flex flex-center">✦</div>
+        <div class="brand-logo flex flex-center">🌸</div>
         <h1 class="q-ma-none">Lilac</h1>
       </div>
       <div v-if="isLoginForm">
@@ -65,7 +65,6 @@ async function registerHandler(registerInfo: {
   await register(registerInfo);
   isLoginForm.value = true;
 }
-
 </script>
 
 <style scoped lang="scss">
