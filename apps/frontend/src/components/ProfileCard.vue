@@ -121,11 +121,6 @@ const emit = defineEmits<{
   }
 }
 
-.profile-nickname {
-  line-height: 1.1;
-  color: $lilac-600;
-}
-
 .status-dot {
   width: 8px;
   height: 8px;
