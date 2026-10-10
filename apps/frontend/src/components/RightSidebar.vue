@@ -39,7 +39,9 @@
                   <div class="text-caption profile-nickname">{{ `@${member.nick}` }}</div>
                 </div>
 
-                <div class="admin q-ml-auto q-px-xs" v-show="member.id === activeChannel?.owner">👑</div>
+                <div class="admin q-ml-auto q-px-xs" v-show="member.id === activeChannel?.owner">
+                  👑
+                </div>
               </q-card-section>
             </q-card>
           </q-item>
@@ -51,10 +53,12 @@
 
 <script setup lang="ts">
 import { useChannels } from '@/composables/useChannels';
+import { useAuth } from '@/composables/useAuth';
 import type { User, UserState } from '@vpwa/shared';
 import { computed } from 'vue';
 
 const { activeChannel, activeChannelMembers } = useChannels();
+const { currentUser } = useAuth();
 const memberGroups = computed(() => {
   const statuses: { state: UserState; label: string; color: string }[] = [
     { state: 'Online', label: 'Online', color: 'online' },
@@ -69,12 +73,14 @@ const memberGroups = computed(() => {
 });
 
 const avatarColors = [
-  '#b08ef8', // Lilac 400
-  '#ff7eb5', // Blush 400
-  '#fbb882', // Peach 400
-  '#4ade80', // Mint 400
-  '#38bdf8', // Sky 400
+  '#ffaacf', // Blush 300
+  '#fbb882', // Peach 300
+  '#86EBA9', // Mint 300
+  '#8DC8FF', // Sky 300
 ];
+
+const dndAvatarColor = '#cbd5e1'; // DND grey
+const activeUserColor = '#c9b3ff'; // Lilac 300
 
 function getInitials(member: User): string {
   if (!member) return '?';
@@ -82,6 +88,14 @@ function getInitials(member: User): string {
 }
 
 function getAvatarColor(member: User): string {
+  if (member.state === 'DND') {
+    return dndAvatarColor;
+  }
+
+  if (member.id === currentUser.value?.id) {
+    return activeUserColor;
+  }
+
   let hash = 0;
 
   for (let i = 0; i < member.id.length; i++) {

@@ -2,7 +2,8 @@
   <q-page class="column" style="height: 100vh; overflow: hidden">
 
     <ChannelHeader :channel="activeChannel" />
-    <ChatFeed />
+    <q-separator></q-separator>
+    <ChatFeed class="q-pt-md" />
     <CmdLine/>
 
     <Teleport to="#left-drawer" v-if="isMounted">
