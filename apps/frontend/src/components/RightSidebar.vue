@@ -24,8 +24,9 @@
               <q-card-section class="row items-center no-wrap q-pa-sm">
                 <div class="avatar-wrapper">
                   <q-avatar
+                    class="profile-avatar"
                     size="36px"
-                    :style="{ backgroundColor: getAvatarColor(member) }"
+                    :style="{ backgroundColor: getAvatarColor(member, true) }"
                     text-color="white"
                   >
                     {{ getInitials(member) }}
@@ -53,12 +54,12 @@
 
 <script setup lang="ts">
 import { useChannels } from '@/composables/useChannels';
-import { useAuth } from '@/composables/useAuth';
 import type { User, UserState } from '@vpwa/shared';
 import { computed } from 'vue';
+import { useAvatar } from '@/composables/useAvatar';
 
+const { getAvatarColor } = useAvatar();
 const { activeChannel, activeChannelMembers } = useChannels();
-const { currentUser } = useAuth();
 const memberGroups = computed(() => {
   const statuses: { state: UserState; label: string; color: string }[] = [
     { state: 'Online', label: 'Online', color: 'online' },
@@ -72,37 +73,9 @@ const memberGroups = computed(() => {
   }));
 });
 
-const avatarColors = [
-  '#ffaacf', // Blush 300
-  '#fbb882', // Peach 300
-  '#86EBA9', // Mint 300
-  '#8DC8FF', // Sky 300
-];
-
-const dndAvatarColor = '#cbd5e1'; // DND grey
-const activeUserColor = '#c9b3ff'; // Lilac 300
-
 function getInitials(member: User): string {
   if (!member) return '?';
   return `${member.name.charAt(0)}${member.lastName.charAt(0)}`.toUpperCase();
-}
-
-function getAvatarColor(member: User): string {
-  if (member.state === 'DND') {
-    return dndAvatarColor;
-  }
-
-  if (member.id === currentUser.value?.id) {
-    return activeUserColor;
-  }
-
-  let hash = 0;
-
-  for (let i = 0; i < member.id.length; i++) {
-    hash += member.id.charCodeAt(i);
-  }
-
-  return avatarColors[hash % avatarColors.length]!;
 }
 </script>
 
@@ -113,6 +86,12 @@ function getAvatarColor(member: User): string {
 
 .channel-member-count {
   color: $lilac-300;
+}
+
+.profile-avatar {
+  :deep(.q-avatar__content) {
+    font-size: 14px;
+  }
 }
 
 .status-dot {

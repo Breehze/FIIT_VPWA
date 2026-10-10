@@ -16,7 +16,7 @@ export const MOCK_USERS: User[] = [
     lastName: 'Smith',
     nick: 'alice',
     email: 'alice@example.com',
-    state: 'Online',
+    state: 'Offline',
     mentionOnlyNotif: false,
   },
   {
@@ -25,7 +25,7 @@ export const MOCK_USERS: User[] = [
     lastName: 'Jones',
     nick: 'bob',
     email: 'bob@example.com',
-    state: 'Online',
+    state: 'DND',
     mentionOnlyNotif: false,
   },
 ];

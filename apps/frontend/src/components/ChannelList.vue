@@ -1,6 +1,6 @@
 <template>
   <q-list dense>
-    <q-item-label header class="row items-center justify-between text-uppercase text-caption">
+    <q-item-label header class="channel-header row items-center justify-between text-uppercase text-caption">
       <span>Channels</span>
 
       <q-btn flat round dense size="sm" icon="add" @click="emit('createChannel')" />
@@ -95,6 +95,10 @@ const emit = defineEmits<{
 }
 
 .channel-active .tag-icon {
+  color: $lilac-600;
+}
+
+.channel-header {
   color: $lilac-600;
 }
 </style>
