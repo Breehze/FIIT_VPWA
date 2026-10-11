@@ -24,8 +24,9 @@
               <q-card-section class="row items-center no-wrap q-pa-sm">
                 <div class="avatar-wrapper">
                   <q-avatar
+                    class="profile-avatar"
                     size="36px"
-                    :style="{ backgroundColor: getAvatarColor(member) }"
+                    :style="{ backgroundColor: getAvatarColor(member, true) }"
                     text-color="white"
                   >
                     {{ getInitials(member) }}
@@ -39,7 +40,9 @@
                   <div class="text-caption profile-nickname">{{ `@${member.nick}` }}</div>
                 </div>
 
-                <div class="admin q-ml-auto q-px-xs" v-show="member.id === activeChannel?.owner">👑</div>
+                <div class="admin q-ml-auto q-px-xs" v-show="member.id === activeChannel?.owner">
+                  👑
+                </div>
               </q-card-section>
             </q-card>
           </q-item>
@@ -53,7 +56,9 @@
 import { useChannels } from '@/composables/useChannels';
 import type { User, UserState } from '@vpwa/shared';
 import { computed } from 'vue';
+import { useAvatar } from '@/composables/useAvatar';
 
+const { getAvatarColor } = useAvatar();
 const { activeChannel, activeChannelMembers } = useChannels();
 const memberGroups = computed(() => {
   const statuses: { state: UserState; label: string; color: string }[] = [
@@ -68,27 +73,9 @@ const memberGroups = computed(() => {
   }));
 });
 
-const avatarColors = [
-  '#b08ef8', // Lilac 400
-  '#ff7eb5', // Blush 400
-  '#fbb882', // Peach 400
-  '#4ade80', // Mint 400
-  '#38bdf8', // Sky 400
-];
-
 function getInitials(member: User): string {
   if (!member) return '?';
   return `${member.name.charAt(0)}${member.lastName.charAt(0)}`.toUpperCase();
-}
-
-function getAvatarColor(member: User): string {
-  let hash = 0;
-
-  for (let i = 0; i < member.id.length; i++) {
-    hash += member.id.charCodeAt(i);
-  }
-
-  return avatarColors[hash % avatarColors.length]!;
 }
 </script>
 
@@ -99,6 +86,12 @@ function getAvatarColor(member: User): string {
 
 .channel-member-count {
   color: $lilac-300;
+}
+
+.profile-avatar {
+  :deep(.q-avatar__content) {
+    font-size: 14px;
+  }
 }
 
 .status-dot {

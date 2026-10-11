@@ -1,8 +1,9 @@
 <template>
   <div>
-    <q-card class="text-center q-pa-sm">
+    <q-card flat class="text-left text-subtitle1 q-pa-md">
       <span v-if="channel">
-        <q-icon :name="channel.type === 'private' ? 'lock' : 'tag'" size="xs" class="q-mr-xs" />
+        <span v-if="channel.type === 'private'">🔒</span>
+        <q-icon v-else name="tag" size="xs" class="tag-icon" />
         {{ channel.name }}
       </span>
       <span v-else>Silence kills</span>
@@ -17,3 +18,9 @@ defineProps<{
   channel: Channel | null;
 }>();
 </script>
+
+<style scoped lang="scss">
+.tag-icon {
+  color: $lilac-400;
+}
+</style>

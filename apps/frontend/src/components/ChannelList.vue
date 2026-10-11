@@ -1,6 +1,6 @@
 <template>
   <q-list dense>
-    <q-item-label header class="row items-center justify-between text-uppercase text-caption">
+    <q-item-label header class="channel-header row items-center justify-between text-uppercase text-caption">
       <span>Channels</span>
 
       <q-btn flat round dense size="sm" icon="add" @click="emit('createChannel')" />
@@ -17,7 +17,7 @@
     >
       <q-item-section avatar style="min-width: 28px">
         <span v-if="channel.type === 'private'">🔒</span>
-        <q-icon v-else name="tag" size="xs" />
+        <q-icon v-else name="tag" size="xs" class="tag-icon" />
       </q-item-section>
 
       <q-item-section>
@@ -64,14 +64,9 @@ const emit = defineEmits<{
 </script>
 
 <style scoped lang="scss">
-.channels-heading {
-  color: $lilac-600;
-  font-size: 11px;
-  font-weight: 600;
-}
-
 .channel {
   border-radius: 10px;
+  color: $lilac-600;
 }
 
 .channel:hover {
@@ -91,8 +86,20 @@ const emit = defineEmits<{
 }
 
 .channel-active {
-  color: $lilac-700;
+  color: $lilac-800;
   background: white;
+}
+
+.tag-icon {
+  color: $lilac-400;
+}
+
+.channel-active .tag-icon {
+  color: $lilac-600;
+}
+
+.channel-header {
+  color: $lilac-600;
 }
 </style>
 

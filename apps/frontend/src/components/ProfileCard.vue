@@ -114,7 +114,7 @@ const emit = defineEmits<{
 }
 
 .profile-avatar {
-  background: $lilac-400;
+  background: $lilac-300;
 
   :deep(.q-avatar__content) {
     font-size: 18px;
