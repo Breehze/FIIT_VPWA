@@ -37,18 +37,20 @@
       </q-item>
     </q-list>
 
-    <q-input
-      class="q-mb-sm q-mx-sm q-py-xs cmd"
-      v-model="typed"
-      dense
-      borderless
-      placeholder="type something wonderful..."
-      type="textarea"
-      autogrow
-      @keydown.enter.prevent="onSubmit"
-    >
-      <template #prepend>🌸</template>
-    </q-input>
+    <div class="q-pa-md">
+      <q-input
+        class="q-mb-sm q-mx-sm q-py-xs cmd"
+        v-model="typed"
+        dense
+        borderless
+        placeholder="type something wonderful..."
+        type="textarea"
+        autogrow
+        @keydown.enter.prevent="onSubmit"
+      >
+        <template #prepend>🌸</template>
+      </q-input>
+    </div>
   </div>
 </template>
 
@@ -167,7 +169,7 @@ function chooseMember(nick: string) {
 }
 
 .cmd {
-  border-radius: 20px;
-  border: 2px solid $lilac-400;
+  border-radius: 15px;
+  border: 2px solid $lilac-200;
 }
 </style>

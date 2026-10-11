@@ -1,64 +1,182 @@
 <template>
-  <div ref="scrollContainer" class="col scroll q-px-xl q-py-md">
+  <div ref="scrollContainer" class="col scroll q-px-xl q-py-md message-scroll">
     <q-infinite-scroll :key="activeChannel?.id ?? ''" reverse @load="onLoad">
-      <q-chat-message
+      <div
         v-for="msg in activeMsgs"
         :key="msg.id"
-        :name="getSender(msg.senderId)?.name"
-        :text="[msg.textContent]"
-        :stamp="new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })"
-        :bg-color="isMentioned(msg.textContent) ? 'amber-2' : undefined"
+        class="message-row q-mb-md"
+        :class="{
+          'mentioned-message': isMentioned(msg.textContent),
+        }"
       >
-        <template #avatar>
-          <q-avatar color="primary" text-color="white" class="q-message-avatar q-message-avatar--received">
+        <div v-if="isMentioned(msg.textContent)" class="mention-label text-uppercase q-mb-xs">
+          🌷 For you
+        </div>
+        <div class="row items-start no-wrap">
+          <q-avatar
+            :style="{
+              backgroundColor: getMessageAvatarColor(msg.senderId),
+            }"
+            text-color="white"
+            size="40px"
+            class="profile-avatar"
+          >
             {{ getInitials(msg.senderId) }}
           </q-avatar>
-        </template>
-      </q-chat-message>
+
+          <div class="col q-ml-sm q-mt-xs">
+            <div class="row items-center q-gutter-x-sm">
+              <span>
+                {{ getSender(msg.senderId)?.name }}
+                {{ getSender(msg.senderId)?.lastName }}
+              </span>
+
+              <span class="message-info text-caption"> @{{ getSender(msg.senderId)?.nick }} </span>
+
+              <span class="message-info text-caption">
+                {{
+                  new Date(msg.createdAt).toLocaleTimeString([], {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  })
+                }}
+              </span>
+            </div>
+
+            <div class="q-mt-xs">
+              <span
+                v-for="(part, index) in splitMessage(msg.textContent)"
+                :key="index"
+                :class="{ 'highlighted-mention': isValidMention(part) }"
+              >
+                {{ part }}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
     </q-infinite-scroll>
   </div>
 </template>
 
 <script setup lang="ts">
-  import { watch, nextTick, ref } from 'vue';
-  import { useChat } from '@/composables/useChat';
-  import { useChannels } from '@/composables/useChannels';
-  import { useAuth } from '@/composables/useAuth';
+import { watch, nextTick, ref } from 'vue';
+import { useChat } from '@/composables/useChat';
+import { useChannels } from '@/composables/useChannels';
+import { useAvatar } from '@/composables/useAvatar';
+import { useAuth } from '@/composables/useAuth';
 
-  const { activeChannel } = useChannels();
-  const { currentUser } = useAuth();
-  const { activeMsgs, hasMoreMsgs, scrollTriggers , loadFollowingMsgs, getSender } = useChat();
+const { currentUser } = useAuth();
+const { getAvatarColor } = useAvatar();
+const { activeChannel, activeChannelMembers } = useChannels();
+const { activeMsgs, hasMoreMsgs, scrollTriggers, loadFollowingMsgs, getSender } = useChat();
 
-  const scrollContainer = ref<HTMLElement | null>(null);
+const scrollContainer = ref<HTMLElement | null>(null);
 
-  function getInitials(senderId: string): string {
-    const user = getSender(senderId);
-    if (!user) return '?';
-    return `${user.name.charAt(0)}${user.lastName.charAt(0)}`.toUpperCase();
-  }
+function getMessageAvatarColor(senderId: string): string {
+  const user = getSender(senderId);
 
-  function onLoad(index: number, done: (stop?: boolean) => void) {
-    loadFollowingMsgs();
-    done(!hasMoreMsgs.value);
-  }
+  if (!user) return '#cbd5e1';
 
-  function isMentioned(msgText : string) : boolean {
-    const nick = currentUser.value?.nick;
-    if(!nick){
-      return false;
+  return getAvatarColor(user);
+}
+
+function isMentioned(text: string): boolean {
+  const nick = currentUser.value?.nick;
+
+  if (!nick) return false;
+
+  return splitMessage(text).some((part) => part.toLowerCase() === `@${nick.toLowerCase()}`);
+}
+
+function getInitials(senderId: string): string {
+  const user = getSender(senderId);
+  if (!user) return '?';
+  return `${user.name.charAt(0)}${user.lastName.charAt(0)}`.toUpperCase();
+}
+
+function onLoad(index: number, done: (stop?: boolean) => void) {
+  loadFollowingMsgs();
+  done(!hasMoreMsgs.value);
+}
+
+function splitMessage(text: string): string[] {
+  return text.split(/(@[a-zA-Z0-9_-]+)/g);
+}
+
+function isValidMention(part: string): boolean {
+  if (!part.startsWith('@')) return false;
+
+  const nick = part.slice(1);
+
+  return activeChannelMembers.value.some(
+    (member) => member.nick.toLowerCase() === nick.toLowerCase(),
+  );
+}
+
+watch(scrollTriggers, async () => {
+  await nextTick(() => {
+    if (scrollContainer.value) {
+      scrollContainer.value.scrollTo({ top: scrollContainer.value.scrollHeight });
     }
-    return new RegExp(`@${nick}\\b`).test(msgText);
-  }
-
-  watch(
-    scrollTriggers,
-    async () => {
-      await nextTick(
-        () =>{
-          if(scrollContainer.value){
-            scrollContainer.value.scrollTo({top: scrollContainer.value.scrollHeight});
-        }
-      })
-    }
-  )
+  });
+});
 </script>
+
+<style scoped lang="scss">
+.profile-avatar {
+  :deep(.q-avatar__content) {
+    font-size: 18px;
+  }
+}
+
+.message-info {
+  color: $lilac-600;
+}
+
+.highlighted-mention {
+  color: $lilac-600;
+  background-color: $lilac-150;
+  border-radius: 8px;
+  padding: 1px 3px;
+  font-weight: 600;
+}
+
+.mention-label {
+  color: $blush-500;
+  font-size: 11px;
+}
+
+.mentioned-message {
+  background-color: $blush-50;
+  border: 1px solid $blush-200;
+  border-radius: 12px;
+
+  margin-inline: -$space-base;
+  padding: $space-base;
+}
+
+.message-scroll {
+  background-color: $lilac-50;
+
+  scrollbar-width: auto;
+  scrollbar-color: $lilac-200 $lilac-50;
+
+  &::-webkit-scrollbar {
+    width: 10px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: $lilac-50;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: $lilac-200;
+    border-radius: 10px;
+  }
+
+  &::-webkit-scrollbar-thumb:hover {
+    background: $lilac-500;
+  }
+}
+</style>
