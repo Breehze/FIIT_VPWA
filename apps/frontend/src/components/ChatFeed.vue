@@ -1,45 +1,57 @@
 <template>
   <div ref="scrollContainer" class="col scroll q-px-xl q-py-md message-scroll">
     <q-infinite-scroll :key="activeChannel?.id ?? ''" reverse @load="onLoad">
-      <div v-for="msg in activeMsgs" :key="msg.id" class="row items-start no-wrap q-mb-md">
-        <q-avatar
-          :style="{
-            backgroundColor: getMessageAvatarColor(msg.senderId),
-          }"
-          text-color="white"
-          size="40px"
-          class="profile-avatar"
-        >
-          {{ getInitials(msg.senderId) }}
-        </q-avatar>
+      <div
+        v-for="msg in activeMsgs"
+        :key="msg.id"
+        class="message-row q-mb-md"
+        :class="{
+          'mentioned-message': isMentioned(msg.textContent),
+        }"
+      >
+        <div v-if="isMentioned(msg.textContent)" class="mention-label text-uppercase q-mb-xs">
+          🌷 For you
+        </div>
+        <div class="row items-start no-wrap">
+          <q-avatar
+            :style="{
+              backgroundColor: getMessageAvatarColor(msg.senderId),
+            }"
+            text-color="white"
+            size="40px"
+            class="profile-avatar"
+          >
+            {{ getInitials(msg.senderId) }}
+          </q-avatar>
 
-        <div class="col q-ml-sm q-mt-xs">
-          <div class="row items-center q-gutter-x-sm">
-            <span>
-              {{ getSender(msg.senderId)?.name }}
-              {{ getSender(msg.senderId)?.lastName }}
-            </span>
+          <div class="col q-ml-sm q-mt-xs">
+            <div class="row items-center q-gutter-x-sm">
+              <span>
+                {{ getSender(msg.senderId)?.name }}
+                {{ getSender(msg.senderId)?.lastName }}
+              </span>
 
-            <span class="message-info text-caption"> @{{ getSender(msg.senderId)?.nick }} </span>
+              <span class="message-info text-caption"> @{{ getSender(msg.senderId)?.nick }} </span>
 
-            <span class="message-info text-caption">
-              {{
-                new Date(msg.createdAt).toLocaleTimeString([], {
-                  hour: '2-digit',
-                  minute: '2-digit',
-                })
-              }}
-            </span>
-          </div>
+              <span class="message-info text-caption">
+                {{
+                  new Date(msg.createdAt).toLocaleTimeString([], {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  })
+                }}
+              </span>
+            </div>
 
-          <div class="q-mt-xs">
-            <span
-              v-for="(part, index) in splitMessage(msg.textContent)"
-              :key="index"
-              :class="{ 'highlighted-mention': isValidMention(part) }"
-            >
-              {{ part }}
-            </span>
+            <div class="q-mt-xs">
+              <span
+                v-for="(part, index) in splitMessage(msg.textContent)"
+                :key="index"
+                :class="{ 'highlighted-mention': isValidMention(part) }"
+              >
+                {{ part }}
+              </span>
+            </div>
           </div>
         </div>
       </div>
@@ -52,7 +64,9 @@ import { watch, nextTick, ref } from 'vue';
 import { useChat } from '@/composables/useChat';
 import { useChannels } from '@/composables/useChannels';
 import { useAvatar } from '@/composables/useAvatar';
+import { useAuth } from '@/composables/useAuth';
 
+const { currentUser } = useAuth();
 const { getAvatarColor } = useAvatar();
 const { activeChannel, activeChannelMembers } = useChannels();
 const { activeMsgs, hasMoreMsgs, scrollTriggers, loadFollowingMsgs, getSender } = useChat();
@@ -65,6 +79,14 @@ function getMessageAvatarColor(senderId: string): string {
   if (!user) return '#cbd5e1';
 
   return getAvatarColor(user);
+}
+
+function isMentioned(text: string): boolean {
+  const nick = currentUser.value?.nick;
+
+  if (!nick) return false;
+
+  return splitMessage(text).some((part) => part.toLowerCase() === `@${nick.toLowerCase()}`);
 }
 
 function getInitials(senderId: string): string {
@@ -118,6 +140,20 @@ watch(scrollTriggers, async () => {
   border-radius: 8px;
   padding: 1px 3px;
   font-weight: 600;
+}
+
+.mention-label {
+  color: $blush-500;
+  font-size: 11px;
+}
+
+.mentioned-message {
+  background-color: $blush-50;
+  border: 1px solid $blush-200;
+  border-radius: 12px;
+
+  margin-inline: -$space-base;
+  padding: $space-base;
 }
 
 .message-scroll {
