@@ -48,6 +48,12 @@ class ChannelActionsService {
     for (const [chId, userIds] of Object.entries(DEFAULT_CHANNEL_MEMBERS)) {
       if (!memberships[chId]) {
         memberships[chId] = [...userIds];
+      } else {
+        for (const uid of userIds) {
+          if (!memberships[chId].includes(uid)) {
+            memberships[chId].push(uid);
+          }
+        }
       }
     }
     return memberships;
