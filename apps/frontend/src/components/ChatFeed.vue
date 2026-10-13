@@ -24,7 +24,7 @@
             {{ getInitials(msg.senderId) }}
           </q-avatar>
 
-          <div class="col q-ml-sm q-mt-xs">
+          <div class="col message-content q-ml-sm q-mt-xs">
             <div class="row items-center q-gutter-x-sm">
               <span>
                 {{ getSender(msg.senderId)?.name }}
@@ -43,7 +43,7 @@
               </span>
             </div>
 
-            <div class="q-mt-xs">
+            <div class="message-text q-mt-xs">
               <span
                 v-for="(part, index) in splitMessage(msg.textContent)"
                 :key="index"
@@ -125,9 +125,25 @@ watch(scrollTriggers, async () => {
 
 <style scoped lang="scss">
 .profile-avatar {
+  flex-shrink: 0;
+
   :deep(.q-avatar__content) {
     font-size: 18px;
   }
+}
+
+.message-row {
+  max-width: 100%;
+}
+
+.message-content {
+  min-width: 0;
+}
+
+.message-text {
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow-wrap: anywhere;
 }
 
 .message-info {
@@ -151,13 +167,13 @@ watch(scrollTriggers, async () => {
   background-color: $blush-50;
   border: 1px solid $blush-200;
   border-radius: 12px;
-
-  margin-inline: -$space-base;
   padding: $space-base;
 }
 
 .message-scroll {
   background-color: $lilac-50;
+  min-height: 0;
+  overflow-x: hidden;
 
   scrollbar-width: auto;
   scrollbar-color: $lilac-200 $lilac-50;

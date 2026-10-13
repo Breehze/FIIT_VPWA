@@ -1,6 +1,9 @@
 <template>
   <q-list dense>
-    <q-item-label header class="channel-header row items-center justify-between text-uppercase text-caption">
+    <q-item-label
+      header
+      class="channel-header row items-center justify-between text-uppercase text-caption"
+    >
       <span>Channels</span>
 
       <q-btn flat round dense size="sm" icon="add" @click="emit('createChannel')" />
@@ -28,7 +31,12 @@
         <q-btn flat round dense size="sm" icon="more_horiz" @click.stop>
           <q-menu class="channel-menu">
             <q-list dense>
-              <q-item class="leave-option q-ma-xs" clickable v-close-popup @click="leaveChannel(channel.id)">
+              <q-item
+                class="leave-option q-ma-xs"
+                clickable
+                v-close-popup
+                @click="leaveChannel(channel.id)"
+              >
                 <q-item-section>Leave channel</q-item-section>
               </q-item>
 
@@ -53,7 +61,7 @@
 import type { Channel } from '@vpwa/shared';
 import { useChannels } from '@/composables/useChannels';
 
-const { leaveChannel,deleteChannel } = useChannels();
+const { leaveChannel, deleteChannel } = useChannels();
 
 defineProps<{
   channels: Channel[];
