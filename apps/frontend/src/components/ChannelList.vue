@@ -28,7 +28,7 @@
         <q-btn flat round dense size="sm" icon="more_horiz" @click.stop>
           <q-menu class="channel-menu">
             <q-list dense>
-              <q-item class="leave-option q-ma-xs" clickable v-close-popup>
+              <q-item class="leave-option q-ma-xs" clickable v-close-popup @click="leaveChannel(channel.id)">
                 <q-item-section>Leave channel</q-item-section>
               </q-item>
 
@@ -37,6 +37,7 @@
                 clickable
                 v-close-popup
                 class="delete-option text-negative q-ma-xs"
+                @click="deleteChannel(channel.id)"
               >
                 <q-item-section>Delete channel</q-item-section>
               </q-item>
@@ -50,6 +51,9 @@
 
 <script setup lang="ts">
 import type { Channel } from '@vpwa/shared';
+import { useChannels } from '@/composables/useChannels';
+
+const { leaveChannel,deleteChannel } = useChannels();
 
 defineProps<{
   channels: Channel[];

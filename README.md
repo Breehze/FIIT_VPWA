@@ -11,9 +11,9 @@
   - [x] Rozlíšenie verejných (`#`) a súkromných (`🔒`) kanálov
   - [x] Pripnutie a zvýraznenie kanála s pozvánkou na vrchu zoznamu
   - [x] Vytvorenie kanála cez používateľské rozhranie (nastavenie tvorcu ako správcu)
-  - [ ] Opustenie kanála cez používateľské rozhranie
-  - [ ] Zrušenie kanála správcom cez používateľské rozhranie
-  - [ ] Odstránenie kanála zo zoznamu po opustení alebo vyhodení
+  - [x] Opustenie kanála cez používateľské rozhranie
+  - [x] Zrušenie kanála správcom cez používateľské rozhranie
+  - [x] Odstránenie kanála zo zoznamu po opustení alebo vyhodení
   - [ ] Expirácia kanála po 30 dňoch neaktivity (uvoľnenie channelName)
 - [x] **3. Fixný príkazový riadok a odosielanie správ**
   - [x] Fixný príkazový riadok ukotvený na spodku aplikácie
