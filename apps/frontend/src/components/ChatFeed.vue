@@ -1,5 +1,12 @@
 <template>
   <div ref="scrollContainer" class="col scroll q-px-xl q-py-md message-scroll">
+    <div v-if="activeKickVotes.length" class="vote-kick-overlay column q-gutter-y-sm q-mb-md">
+      <VoteKickCard
+        v-for="vote in activeKickVotes"
+        :key="`${activeChannel?.id}:${vote.target.id}`"
+        :vote="vote"
+      />
+    </div>
     <q-infinite-scroll :key="activeChannel?.id ?? ''" reverse @load="onLoad">
       <div
         v-for="msg in activeMsgs"
@@ -65,10 +72,11 @@ import { useChat } from '@/composables/useChat';
 import { useChannels } from '@/composables/useChannels';
 import { useAvatar } from '@/composables/useAvatar';
 import { useAuth } from '@/composables/useAuth';
+import VoteKickCard from '@/components/VoteKickCard.vue';
 
 const { currentUser } = useAuth();
 const { getAvatarColor } = useAvatar();
-const { activeChannel, activeChannelMembers } = useChannels();
+const { activeChannel, activeChannelMembers, activeKickVotes } = useChannels();
 const { activeMsgs, hasMoreMsgs, scrollTriggers, loadFollowingMsgs, getSender } = useChat();
 
 const scrollContainer = ref<HTMLElement | null>(null);
@@ -114,7 +122,7 @@ function isValidMention(part: string): boolean {
   );
 }
 
-watch(scrollTriggers, async () => {
+watch([scrollTriggers, activeKickVotes], async () => {
   await nextTick(() => {
     if (scrollContainer.value) {
       scrollContainer.value.scrollTo({ top: scrollContainer.value.scrollHeight });
@@ -124,6 +132,12 @@ watch(scrollTriggers, async () => {
 </script>
 
 <style scoped lang="scss">
+.vote-kick-overlay {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
 .profile-avatar {
   flex-shrink: 0;
 

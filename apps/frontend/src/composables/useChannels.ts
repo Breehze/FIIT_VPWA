@@ -1,4 +1,4 @@
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 import type { Channel, ChannelType, User } from '@vpwa/shared';
 import { channelActionsService, type InvitedChannel } from '@/services/channelActions.service';
 import { useAuth } from '@/composables/useAuth';
@@ -12,6 +12,19 @@ export function useChannels() {
   const { currentUser } = useAuth();
   const { removeChannelNotifications } = useNotifications();
 
+  watch(
+    () => channelActionsService.getUserChannels(currentUser.value?.id),
+    (updatedChannels) => {
+      channels.value = updatedChannels;
+      invitedChannels.value = channelActionsService.getInvitedChannels(currentUser.value?.id);
+      if (activeChannelId.value && !updatedChannels.some((c) => c.id === activeChannelId.value)) {
+        removeChannelNotifications(activeChannelId.value);
+        activeChannelId.value = updatedChannels[0]?.id ?? null;
+      }
+    },
+    { immediate: true },
+  );
+
   const activeChannel = computed(() => {
     return channels.value.find((c) => c.id === activeChannelId.value) || null;
   });
@@ -19,6 +32,11 @@ export function useChannels() {
   const activeChannelMembers = computed<User[]>(() => {
     if (!activeChannelId.value) return [];
     return channelActionsService.getChannelMembers(activeChannelId.value);
+  });
+
+  const activeKickVotes = computed(() => {
+    if (!activeChannel.value) return [];
+    return channelActionsService.getKickVotes(activeChannel.value.id);
   });
 
   function selectChannel(channelId: string) {
@@ -54,6 +72,12 @@ export function useChannels() {
     afterChannelRemoved(channelId);
   }
 
+  function kickMember(channelId: string, nickname: string) {
+    channelActionsService.kickMember(channelId, nickname, currentUser.value?.id);
+    refreshChannels();
+    invitedChannels.value = channelActionsService.getInvitedChannels();
+  }
+
   function afterChannelRemoved(channelId: string) {
     refreshChannels();
     removeChannelNotifications(channelId);
@@ -82,11 +106,13 @@ export function useChannels() {
     activeChannelId,
     activeChannel,
     activeChannelMembers,
+    activeKickVotes,
     selectChannel,
     createChannel,
     joinChannel,
     leaveChannel,
     deleteChannel,
+    kickMember,
     acceptInvite,
     rejectInvite,
   };
