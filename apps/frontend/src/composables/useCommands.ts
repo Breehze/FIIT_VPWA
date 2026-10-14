@@ -6,7 +6,7 @@ const showMemberList = ref(false);
 
 export function useCommands() {
   const { currentUser } = useAuth();
-  const { activeChannel, leaveChannel, joinChannel, deleteChannel, kickMember } =
+  const { activeChannel, leaveChannel, joinChannel, deleteChannel, kickMember, revokeMember } =
     useChannels();
 
   function execCommand(commandStr: string): string | null {
@@ -28,6 +28,8 @@ export function useCommands() {
         case 'invite':
           break;
         case 'revoke':
+          if (args.length !== 1 || !args[0]) return 'Usage: /revoke nickName';
+          revokeMember(channel.id, args[0]);
           break;
         case 'kick':
           if (args.length !== 1 || !args[0]) return 'Usage: /kick nickName';

@@ -72,6 +72,11 @@ export function useChannels() {
     refreshChannels();
   }
 
+  function revokeMember(channelId: string, nickname: string) {
+    channelActionsService.revokeMember(channelId, nickname, currentUser.value?.id);
+    refreshChannels();
+  }
+
   function afterChannelRemoved(channelId: string) {
     refreshChannels();
     removeChannelNotifications(channelId);
@@ -104,6 +109,7 @@ export function useChannels() {
     leaveChannel,
     deleteChannel,
     kickMember,
+    revokeMember,
     acceptInvite,
     rejectInvite,
   };

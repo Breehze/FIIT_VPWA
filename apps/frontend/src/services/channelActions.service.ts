@@ -198,6 +198,28 @@ class ChannelActionsService {
     }
   }
 
+  revokeMember(channelId: string, nickname: string, userId?: string): void {
+    const currentUserId = this.resolveUserId(userId);
+    const channel = this.requireMember(channelId, currentUserId);
+    if (channel.type !== 'private') {
+      throw new Error('/revoke is only available in private channels');
+    }
+    if (channel.owner !== currentUserId) {
+      throw new Error('Only the channel admin can revoke membership');
+    }
+    const target = this.findUser(nickname);
+    if (target.id === currentUserId) {
+      throw new Error('You cannot revoke your own membership; use /cancel instead');
+    }
+    const memberships = this.getChannelMemberships();
+    const members = memberships[channelId] ?? [];
+    if (!members.includes(target.id)) {
+      throw new Error(`${target.nick} is not a member of this channel`);
+    }
+    memberships[channelId] = members.filter((id) => id !== target.id);
+    this.saveChannelMemberships(memberships);
+  }
+
   private requireMember(channelId: string, userId: string): Channel {
     const channel = this.getAllChannels().find((c) => c.id === channelId);
     if (!channel) throw new Error('Channel not found');
