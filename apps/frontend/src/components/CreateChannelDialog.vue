@@ -120,6 +120,14 @@ function handleCreate() {
 
 .create-button {
   border-radius: 18px;
-  background-color: $lilac-200;
+  background-color: $lilac-400;
+
+  &:disabled {
+    background-color: $lilac-200;
+  }
+
+  &:not(:disabled):hover {
+    background-color: $lilac-600;
+  }
 }
 </style>
