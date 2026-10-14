@@ -1,77 +1,104 @@
 <template>
   <div ref="scrollContainer" class="col scroll q-px-xl q-py-md message-scroll">
     <q-infinite-scroll :key="activeChannel?.id ?? ''" reverse @load="onLoad">
-      <div
-        v-for="msg in activeMsgs"
-        :key="msg.id"
-        class="message-row q-mb-md"
-        :class="{
-          'mentioned-message': isMentioned(msg.textContent),
-        }"
-      >
-        <div v-if="isMentioned(msg.textContent)" class="mention-label text-uppercase q-mb-xs">
-          🌷 For you
+      <template v-for="(msg, index) in activeMsgs" :key="msg.id">
+        <div
+          v-if="index === firstUnreadIndex"
+          class="new-messages-divider q-my-lg q-mx-auto q-px-sm"
+        >
+          <span>🌷 NEW MESSAGES 🌷</span>
         </div>
-        <div class="row items-start no-wrap">
-          <q-avatar
-            :style="{
-              backgroundColor: getMessageAvatarColor(msg.senderId),
-            }"
-            text-color="white"
-            size="40px"
-            class="profile-avatar"
-          >
-            {{ getInitials(msg.senderId) }}
-          </q-avatar>
 
-          <div class="col message-content q-ml-sm q-mt-xs">
-            <div class="row items-center q-gutter-x-sm">
-              <span>
-                {{ getSender(msg.senderId)?.name }}
-                {{ getSender(msg.senderId)?.lastName }}
-              </span>
+        <div
+          class="message-row q-mb-md"
+          :class="{
+            'mentioned-message': isMentioned(msg.textContent),
+          }"
+        >
+          <div v-if="isMentioned(msg.textContent)" class="mention-label text-uppercase q-mb-sm">
+            🌷 For you
+          </div>
+          <div class="row items-start no-wrap">
+            <q-avatar
+              :style="{
+                backgroundColor: getMessageAvatarColor(msg.senderId),
+              }"
+              text-color="white"
+              size="40px"
+              class="profile-avatar"
+            >
+              {{ getInitials(msg.senderId) }}
+            </q-avatar>
 
-              <span class="message-info text-caption"> @{{ getSender(msg.senderId)?.nick }} </span>
+            <div class="col message-content q-ml-sm q-mt-xs">
+              <div class="row items-center q-gutter-x-sm">
+                <span>
+                  {{ getSender(msg.senderId)?.name }}
+                  {{ getSender(msg.senderId)?.lastName }}
+                </span>
 
-              <span class="message-info text-caption">
-                {{
-                  new Date(msg.createdAt).toLocaleTimeString([], {
-                    hour: '2-digit',
-                    minute: '2-digit',
-                  })
-                }}
-              </span>
-            </div>
+                <span class="message-info text-caption">
+                  @{{ getSender(msg.senderId)?.nick }}
+                </span>
 
-            <div class="message-text q-mt-xs">
-              <span
-                v-for="(part, index) in splitMessage(msg.textContent)"
-                :key="index"
-                :class="{ 'highlighted-mention': isValidMention(part) }"
-              >
-                {{ part }}
-              </span>
+                <span class="message-info text-caption">
+                  {{
+                    new Date(msg.createdAt).toLocaleTimeString([], {
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    })
+                  }}
+                </span>
+              </div>
+
+              <div class="message-text q-mt-xs">
+                <span
+                  v-for="(part, index) in splitMessage(msg.textContent)"
+                  :key="index"
+                  :class="{ 'highlighted-mention': isValidMention(part) }"
+                >
+                  {{ part }}
+                </span>
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      </template>
     </q-infinite-scroll>
   </div>
 </template>
 
 <script setup lang="ts">
-import { watch, nextTick, ref } from 'vue';
+import { watch, nextTick, ref, computed } from 'vue';
 import { useChat } from '@/composables/useChat';
 import { useChannels } from '@/composables/useChannels';
 import { useAvatar } from '@/composables/useAvatar';
 import { useAuth } from '@/composables/useAuth';
+import { useNotifications } from '@/composables/useNotifications';
 
 const { currentUser } = useAuth();
 const { getAvatarColor } = useAvatar();
 const { activeChannel, activeChannelMembers } = useChannels();
 const { activeMsgs, hasMoreMsgs, scrollTriggers, loadFollowingMsgs, getSender } = useChat();
+const { getUnreadBoundary, visibleUnreadDividerChannel } = useNotifications();
 
 const scrollContainer = ref<HTMLElement | null>(null);
+
+const firstUnreadIndex = computed(() => {
+  const channelId = activeChannel.value?.id;
+
+  if (!channelId || visibleUnreadDividerChannel.value !== channelId) {
+    return -1;
+  }
+
+  const unreadCount = getUnreadBoundary(channelId);
+
+  if (unreadCount <= 0 || unreadCount > activeMsgs.value.length) {
+    return -1;
+  }
+
+  return activeMsgs.value.length - unreadCount;
+});
 
 function getMessageAvatarColor(senderId: string): string {
   const user = getSender(senderId);
@@ -160,7 +187,7 @@ watch(scrollTriggers, async () => {
 
 .mention-label {
   color: $blush-500;
-  font-size: 11px;
+  font-size: 10px;
 }
 
 .mentioned-message {
@@ -168,6 +195,38 @@ watch(scrollTriggers, async () => {
   border: 1px solid $blush-200;
   border-radius: 12px;
   padding: $space-base;
+}
+
+.new-messages-divider {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: fit-content;
+  position: relative;
+
+  color: $blush-500;
+  font-size: 12px;
+  background: $blush-50;
+  border: 1px solid $blush-200;
+  border-radius: 12px;
+}
+
+.new-messages-divider::before,
+.new-messages-divider::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  width: 80px;
+  height: 1px;
+  background-color: $blush-200;
+}
+
+.new-messages-divider::before {
+  right: calc(100% + 8px);
+}
+
+.new-messages-divider::after {
+  left: calc(100% + 8px);
 }
 
 .message-scroll {

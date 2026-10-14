@@ -16,7 +16,7 @@
       :active="channel.id === activeChannelId"
       class="channel"
       active-class="channel-active"
-      @click="emit('selectChannel', channel)"
+      @click="handleChannelClick(channel)"
     >
       <q-item-section avatar style="min-width: 28px">
         <span v-if="channel.type === 'private'">🔒</span>
@@ -28,7 +28,11 @@
       </q-item-section>
 
       <q-item-section side>
-        <q-btn flat round dense size="sm" icon="more_horiz" @click.stop>
+        <q-badge v-if="getUnreadCount(channel.id) > 0" rounded class="unread-badge">
+          {{ getUnreadCount(channel.id) }}
+        </q-badge>
+
+        <q-btn v-else flat round dense size="sm" icon="more_horiz" @click.stop>
           <q-menu class="channel-menu">
             <q-list dense>
               <q-item
@@ -60,8 +64,10 @@
 <script setup lang="ts">
 import type { Channel } from '@vpwa/shared';
 import { useChannels } from '@/composables/useChannels';
+import { useNotifications } from '@/composables/useNotifications';
 
 const { leaveChannel, deleteChannel } = useChannels();
+const { getUnreadCount, markChannelAsRead } = useNotifications();
 
 defineProps<{
   channels: Channel[];
@@ -73,6 +79,11 @@ const emit = defineEmits<{
   (e: 'selectChannel', channel: Channel): void;
   (e: 'createChannel'): void;
 }>();
+
+function handleChannelClick(channel: Channel): void {
+  emit('selectChannel', channel);
+  markChannelAsRead(channel.id);
+}
 </script>
 
 <style scoped lang="scss">
@@ -112,6 +123,19 @@ const emit = defineEmits<{
 
 .channel-header {
   color: $lilac-600;
+}
+
+.unread-badge {
+  background: linear-gradient(90deg, $blush-300, $lilac-300);
+  color: white;
+
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 </style>
 
