@@ -44,13 +44,7 @@ class ChannelActionsService {
       this.saveChannelMemberships(DEFAULT_CHANNEL_MEMBERS);
       return DEFAULT_CHANNEL_MEMBERS;
     }
-    const memberships: Record<string, string[]> = JSON.parse(raw);
-    for (const [chId, userIds] of Object.entries(DEFAULT_CHANNEL_MEMBERS)) {
-      if (!memberships[chId]) {
-        memberships[chId] = [...userIds];
-      }
-    }
-    return memberships;
+    return JSON.parse(raw);
   }
 
   saveChannelMemberships(memberships: Record<string, string[]>): void {

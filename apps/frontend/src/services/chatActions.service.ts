@@ -60,6 +60,30 @@ class ChatActionsService {
     this.saveMessages(all);
     return newMsg;
   }
+
+  getActiveDrafts(channelMembers: User[], currentUserId?: string): ActiveDraft[] {
+    const otherMembers = channelMembers.filter((m) => m.id !== currentUserId);
+
+    const sampleDrafts: Record<string, string> = {
+      diana:
+        'Hey everyone! I just finished reviewing the lecture slides and I think we should double check all use cases before the final demo.',
+      charlie: 'Working on the VPWA assignment right now, looks good so far!',
+      bob: 'Anyone want to grab lunch after class?',
+      alice: 'Hey team, does anyone have notes from the last tutorial?',
+    };
+
+    return otherMembers.map((m) => ({
+      nick: m.nick,
+      draftText:
+        sampleDrafts[m.nick.toLowerCase()] ??
+        `Hey everyone, working on the VPWA project right now!`,
+    }));
+  }
+}
+
+export interface ActiveDraft {
+  nick: string;
+  draftText: string;
 }
 
 export const chatActionsService = new ChatActionsService();

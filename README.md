@@ -46,9 +46,9 @@
 - [x] **10. Zoznam členov kanála**
   - [x] Príkaz `/list` (otvorenie panelu so zoznamom členov aktuálneho kanála)
   - [x] Zobrazenie členov so stavom a označením správcu
-- [ ] **11. Indikátor písania a náhľad rozpísanej správy (Draft Peek)**
-  - [ ] Indikátor v stavovej lište o tom, kto aktuálne píše správu (napr. "Ed is typing...")
-  - [ ] Živý náhľad rozpísaného textu v reálnom čase po kliknutí na nickName používateľa
+- [x] **11. Indikátor písania a náhľad rozpísanej správy (Draft Peek)**
+  - [x] Indikátor v stavovej lište o tom, kto aktuálne píše správu (napr. "Ed is typing...")
+  - [x] Živý náhľad rozpísaného textu v reálnom čase po kliknutí na nickName používateľa
 
 ---
 

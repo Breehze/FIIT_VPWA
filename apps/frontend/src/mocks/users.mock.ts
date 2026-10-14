@@ -28,6 +28,24 @@ export const MOCK_USERS: User[] = [
     state: 'DND',
     mentionOnlyNotif: false,
   },
+  {
+    id: '777e4567-e89b-12d3-a456-426614174777',
+    name: 'Charlie',
+    lastName: 'Brown',
+    nick: 'charlie',
+    email: 'charlie@example.com',
+    state: 'Online',
+    mentionOnlyNotif: false,
+  },
+  {
+    id: '666e4567-e89b-12d3-a456-426614174666',
+    name: 'Diana',
+    lastName: 'Prince',
+    nick: 'diana',
+    email: 'diana@example.com',
+    state: 'Online',
+    mentionOnlyNotif: false,
+  },
 ];
 
 export function getMockUserById(id: string): User | undefined {

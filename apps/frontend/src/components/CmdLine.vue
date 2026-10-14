@@ -38,6 +38,8 @@
     </q-list>
 
     <div class="q-pa-md">
+      <TypingIndicator/>
+
       <q-input
         class="q-mb-sm q-mx-sm q-py-xs cmd"
         v-model="typed"
@@ -60,6 +62,7 @@ import { useChat } from '@/composables/useChat';
 import { useChannels } from '@/composables/useChannels';
 import { useCommands } from '@/composables/useCommands';
 import { useAvatar } from '@/composables/useAvatar';
+import TypingIndicator from '@/components/TypingIndicator.vue';
 
 const { getAvatarColor } = useAvatar();
 const { sendMsg } = useChat();
@@ -108,6 +111,28 @@ function chooseMember(nick: string) {
 
 .mention-list {
   border-radius: 15px;
+  max-height: 220px;
+  overflow-y: auto;
+
+  scrollbar-width: thin;
+  scrollbar-color: $lilac-300 $lilac-50;
+
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: $lilac-50;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: $lilac-300;
+    border-radius: 10px;
+  }
+
+  &::-webkit-scrollbar-thumb:hover {
+    background: $lilac-500;
+  }
 }
 
 .status-dot {
@@ -142,30 +167,6 @@ function chooseMember(nick: string) {
 
   color: $lilac-300;
   font-size: 11px;
-}
-
-&::-webkit-scrollbar {
-  width: 6px;
-}
-
-&::-webkit-scrollbar-track {
-  background: $lilac-50;
-}
-
-&::-webkit-scrollbar-thumb {
-  background: $lilac-300;
-  border-radius: 10px;
-}
-
-&::-webkit-scrollbar-thumb:hover {
-  background: $lilac-500;
-}
-
-@supports not selector(::-webkit-scrollbar) {
-  .mention-list {
-    scrollbar-width: thin;
-    scrollbar-color: $lilac-300 $lilac-50;
-  }
 }
 
 .cmd {
