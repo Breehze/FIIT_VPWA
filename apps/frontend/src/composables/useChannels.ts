@@ -2,6 +2,7 @@ import { ref, computed } from 'vue';
 import type { Channel, ChannelType, User } from '@vpwa/shared';
 import { channelActionsService, type InvitedChannel } from '@/services/channelActions.service';
 import { useAuth } from '@/composables/useAuth';
+import { useNotifications } from '@/composables/useNotifications';
 
 const channels = ref<Channel[]>(channelActionsService.getUserChannels());
 const invitedChannels = ref<InvitedChannel[]>(channelActionsService.getInvitedChannels());
@@ -9,6 +10,7 @@ const activeChannelId = ref<string | null>(channels.value[0]?.id || null);
 
 export function useChannels() {
   const { currentUser } = useAuth();
+  const { removeChannelNotifications } = useNotifications();
 
   const activeChannel = computed(() => {
     return channels.value.find((c) => c.id === activeChannelId.value) || null;
@@ -54,6 +56,7 @@ export function useChannels() {
 
   function afterChannelRemoved(channelId: string) {
     refreshChannels();
+    removeChannelNotifications(channelId);
     if (activeChannelId.value === channelId) {
       activeChannelId.value = channels.value[0]?.id || null;
     }

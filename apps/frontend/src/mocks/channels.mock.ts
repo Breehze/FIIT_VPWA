@@ -32,6 +32,12 @@ export const DEFAULT_CHANNELS: Channel[] = [
   },
 ];
 
+export const DEFAULT_UNREAD_COUNTS: Record<string, number> = {
+  'ch-1': 1,
+  'ch-2': 1,
+  'ch-3': 0,
+};
+
 export const DEFAULT_INVITES: InvitedChannel[] = [
   {
     invite: {
@@ -79,12 +85,6 @@ export const DEFAULT_CHANNEL_MEMBERS: Record<string, string[]> = {
     '777e4567-e89b-12d3-a456-426614174777',
     '666e4567-e89b-12d3-a456-426614174666',
   ],
-  'ch-2': [
-    '999e4567-e89b-12d3-a456-426614174999',
-    '123e4567-e89b-12d3-a456-426614174000',
-  ],
-  'ch-3': [
-    '123e4567-e89b-12d3-a456-426614174000',
-    '999e4567-e89b-12d3-a456-426614174999',
-  ],
+  'ch-2': ['999e4567-e89b-12d3-a456-426614174999', '123e4567-e89b-12d3-a456-426614174000'],
+  'ch-3': ['123e4567-e89b-12d3-a456-426614174000', '999e4567-e89b-12d3-a456-426614174999'],
 };

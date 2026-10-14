@@ -1,18 +1,18 @@
-import { ref, watch } from 'vue'
-import type { Msg } from '@vpwa/shared'
-import { chatActionsService } from '@/services/chatActions.service'
-import { useChannels } from '@/composables/useChannels'
+import { ref, watch } from 'vue';
+import type { Msg } from '@vpwa/shared';
+import { chatActionsService } from '@/services/chatActions.service';
+import { useChannels } from '@/composables/useChannels';
 import { useAuth } from './useAuth';
 import { useNotifications } from '@/composables/useNotifications';
 
 const activeMsgs = ref<Msg[]>([]);
 const hasMoreMsgs = ref(true);
 const scrollTriggers = ref(0);
-const { addUnreadMessage, markChannelAsRead } = useNotifications();
 
-export function useChat(){
+export function useChat() {
   const { activeChannel } = useChannels();
   const { currentUser } = useAuth();
+  const { addUnreadMessage, markChannelAsRead } = useNotifications();
 
   watch(
     () => activeChannel.value?.id,
@@ -22,49 +22,49 @@ export function useChat(){
         markChannelAsRead(newChannelId);
       }
     },
-    {immediate : true}
-  )
+    { immediate: true },
+  );
 
-  function loadInitialMsgs() : void{
+  function loadInitialMsgs(): void {
     const activeChannelId = activeChannel.value?.id ?? null;
-    if(!activeChannelId){
+    if (!activeChannelId) {
       return;
     }
-    activeMsgs.value = chatActionsService.getChannelMessages(activeChannelId,10);
+    activeMsgs.value = chatActionsService.getChannelMessages(activeChannelId, 10);
     hasMoreMsgs.value = activeMsgs.value.length >= 10;
   }
 
-  function loadFollowingMsgs() : void{
+  function loadFollowingMsgs(): void {
     const activeChannelId = activeChannel.value?.id ?? null;
-    if(!activeMsgs.value.length || !activeChannelId){
+    if (!activeMsgs.value.length || !activeChannelId) {
       return;
     }
 
     const lastMsgShown = activeMsgs.value[0];
-    if(!lastMsgShown){
+    if (!lastMsgShown) {
       return;
     }
 
-    const nextMsgs = chatActionsService.getChannelMessages(activeChannelId,10,lastMsgShown.id);
+    const nextMsgs = chatActionsService.getChannelMessages(activeChannelId, 10, lastMsgShown.id);
     activeMsgs.value.unshift(...nextMsgs);
 
-    if(nextMsgs.length < 10){
+    if (nextMsgs.length < 10) {
       hasMoreMsgs.value = false;
     }
   }
 
-  function sendMsg(msg : string){
+  function sendMsg(msg: string) {
     const channelId = activeChannel.value?.id;
     const sender = currentUser.value?.id;
-    if(!channelId || !sender){
+    if (!channelId || !sender) {
       return;
     }
-    const newMsg = chatActionsService.sendMessage(channelId,sender,msg);
+    const newMsg = chatActionsService.sendMessage(channelId, sender, msg);
     activeMsgs.value.push(newMsg);
     scrollTriggers.value++;
   }
 
-  function getSender(senderId: string){
+  function getSender(senderId: string) {
     return chatActionsService.getUserById(senderId);
   }
 
@@ -83,7 +83,7 @@ export function useChat(){
     }
   }
 
-  return{
+  return {
     activeMsgs,
     hasMoreMsgs,
     scrollTriggers,
@@ -92,5 +92,5 @@ export function useChat(){
     getSender,
     sendMsg,
     receiveMsg,
-  }
+  };
 }
