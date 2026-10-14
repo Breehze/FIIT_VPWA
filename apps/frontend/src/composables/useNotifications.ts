@@ -1,4 +1,4 @@
-import { reactive, computed } from 'vue';
+import { ref, reactive, computed } from 'vue';
 import { DEFAULT_UNREAD_COUNTS } from '@/mocks';
 
 const unreadCounts = reactive<Record<string, number>>({
@@ -8,6 +8,8 @@ const unreadCounts = reactive<Record<string, number>>({
 const totalUnreadCount = computed(() =>
   Object.values(unreadCounts).reduce((total, count) => total + count, 0),
 );
+
+const mentionsOnly = ref(false);
 
 export function useNotifications() {
   function getUnreadCount(channelId: string): number {
@@ -32,6 +34,7 @@ export function useNotifications() {
 
   return {
     unreadCounts,
+    mentionsOnly,
     getUnreadCount,
     markChannelAsRead,
     addUnreadMessage,
