@@ -1,5 +1,4 @@
 import type { Channel, ChannelType, User } from '@vpwa/shared';
-import { reactive, ref } from 'vue';
 import {
   DEFAULT_CHANNELS,
   DEFAULT_INVITES,
@@ -15,15 +14,15 @@ export const KICK_VOTE_THRESHOLD = 3;
 
 export interface KickVoteProgress {
   target: User;
-  voterIds: string[];
+  voteCount: number;
 }
 
 
 let storedChannels: Channel[] = structuredClone(DEFAULT_CHANNELS);
-const storedMemberships = ref<Record<string, string[]>>(structuredClone(DEFAULT_CHANNEL_MEMBERS));
+let storedMemberships: Record<string, string[]> = structuredClone(DEFAULT_CHANNEL_MEMBERS);
 let storedInvites: InvitedChannel[] = structuredClone(DEFAULT_INVITES);
 const bans = new Map<string, Set<string>>();
-const kickVotes = reactive(new Map<string, Map<string, string[]>>());
+const kickVotes = new Map<string, Map<string, number>>();
 
 class ChannelActionsService {
   getAllChannels(): Channel[] {
@@ -35,11 +34,11 @@ class ChannelActionsService {
   }
 
   getChannelMemberships(): Record<string, string[]> {
-    return storedMemberships.value;
+    return storedMemberships;
   }
 
   saveChannelMemberships(memberships: Record<string, string[]>): void {
-    storedMemberships.value = memberships;
+    storedMemberships = memberships;
   }
 
   getUserChannels(userId?: string): Channel[] {
@@ -55,9 +54,8 @@ class ChannelActionsService {
     return this.getUserChannels(userId);
   }
 
-  getInvitedChannels(userId?: string): InvitedChannel[] {
-    const currentUserId = this.resolveUserId(userId);
-    return storedInvites.filter(({ invite }) => invite.inviteeId === currentUserId);
+  getInvitedChannels(): InvitedChannel[] {
+    return storedInvites;
   }
 
   saveInvitedChannels(invites: InvitedChannel[]): void {
@@ -165,9 +163,9 @@ class ChannelActionsService {
 
   getKickVotes(channelId: string): KickVoteProgress[] {
     const members = this.getChannelMembers(channelId);
-    return Array.from(kickVotes.get(channelId) ?? []).flatMap(([targetId, voters]) => {
+    return Array.from(kickVotes.get(channelId) ?? []).flatMap(([targetId, voteCount]) => {
       const target = members.find((member) => member.id === targetId);
-      return target ? [{ target, voterIds: [...voters] }] : [];
+      return target ? [{ target, voteCount }] : [];
     });
   }
 
@@ -185,24 +183,18 @@ class ChannelActionsService {
       throw new Error(`${target.nick} is not a member of this channel`);
     }
 
-    const channelVotes = kickVotes.get(channelId) ?? new Map<string, string[]>();
-    const voters = channelVotes.get(target.id) ?? [];
-    voters.push(currentUserId);
-    channelVotes.set(target.id, voters);
+    const channelVotes = kickVotes.get(channelId) ?? new Map<string, number>();
+    const voteCount = (channelVotes.get(target.id) ?? 0) + 1;
+    channelVotes.set(target.id, voteCount);
     kickVotes.set(channelId, channelVotes);
 
-    if (channel.owner === currentUserId || voters.length >= KICK_VOTE_THRESHOLD) {
+    if (channel.owner === currentUserId || voteCount >= KICK_VOTE_THRESHOLD) {
       const channelBans = bans.get(channelId) ?? new Set<string>();
       channelBans.add(target.id);
       bans.set(channelId, channelBans);
       memberships[channelId] = (memberships[channelId] ?? []).filter((id) => id !== target.id);
       this.saveChannelMemberships(memberships);
       channelVotes.delete(target.id);
-      this.saveInvitedChannels(
-        storedInvites.filter(
-          ({ invite }) => invite.channelId !== channelId || invite.inviteeId !== target.id,
-        ),
-      );
     }
   }
 
@@ -231,7 +223,6 @@ class ChannelActionsService {
   private removeChannel(channelId: string): void {
     bans.delete(channelId);
     kickVotes.delete(channelId);
-    this.saveInvitedChannels(storedInvites.filter(({ invite }) => invite.channelId !== channelId));
     const channels = this.getAllChannels().filter((c) => c.id !== channelId);
     this.saveChannels(channels);
 
@@ -246,14 +237,10 @@ class ChannelActionsService {
 
   acceptInvite(inviteId: string, userId?: string): Channel | null {
     const currentUserId = this.resolveUserId(userId);
-    const invites = storedInvites;
+    const invites = this.getInvitedChannels();
     const target = invites.find((item) => item.invite.id === inviteId);
 
     if (!target) return null;
-    if (target.invite.inviteeId !== currentUserId) {
-      throw new Error('This invitation belongs to another user');
-    }
-    this.assertNotBanned(target.channel.id, currentUserId);
 
     const remainingInvites = invites.filter((item) => item.invite.id !== inviteId);
     this.saveInvitedChannels(remainingInvites);
@@ -277,7 +264,7 @@ class ChannelActionsService {
   }
 
   rejectInvite(inviteId: string): void {
-    const invites = storedInvites.filter((item) => item.invite.id !== inviteId);
+    const invites = this.getInvitedChannels().filter((item) => item.invite.id !== inviteId);
 
     this.saveInvitedChannels(invites);
   }

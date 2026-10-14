@@ -12,31 +12,22 @@ export function useChannels() {
   const { currentUser } = useAuth();
   const { removeChannelNotifications } = useNotifications();
 
-  watch(
-    () => channelActionsService.getUserChannels(currentUser.value?.id),
-    (updatedChannels) => {
-      channels.value = updatedChannels;
-      invitedChannels.value = channelActionsService.getInvitedChannels(currentUser.value?.id);
-      if (activeChannelId.value && !updatedChannels.some((c) => c.id === activeChannelId.value)) {
-        removeChannelNotifications(activeChannelId.value);
-        activeChannelId.value = updatedChannels[0]?.id ?? null;
-      }
-    },
-    { immediate: true },
-  );
+  watch(() => currentUser.value?.id, refreshChannels, { immediate: true });
 
   const activeChannel = computed(() => {
     return channels.value.find((c) => c.id === activeChannelId.value) || null;
   });
 
   const activeChannelMembers = computed<User[]>(() => {
-    if (!activeChannelId.value) return [];
-    return channelActionsService.getChannelMembers(activeChannelId.value);
+    const channel = channels.value.find((c) => c.id === activeChannelId.value);
+    if (!channel) return [];
+    return channelActionsService.getChannelMembers(channel.id);
   });
 
   const activeKickVotes = computed(() => {
-    if (!activeChannel.value) return [];
-    return channelActionsService.getKickVotes(activeChannel.value.id);
+    const channel = channels.value.find((c) => c.id === activeChannelId.value);
+    if (!channel) return [];
+    return channelActionsService.getKickVotes(channel.id);
   });
 
   function selectChannel(channelId: string) {
@@ -45,6 +36,10 @@ export function useChannels() {
 
   function refreshChannels() {
     channels.value = channelActionsService.getUserChannels(currentUser.value?.id);
+    if (activeChannelId.value && !channels.value.some((c) => c.id === activeChannelId.value)) {
+      removeChannelNotifications(activeChannelId.value);
+      activeChannelId.value = channels.value[0]?.id ?? null;
+    }
   }
 
   function createChannel(name: string, type: ChannelType) {
@@ -75,15 +70,11 @@ export function useChannels() {
   function kickMember(channelId: string, nickname: string) {
     channelActionsService.kickMember(channelId, nickname, currentUser.value?.id);
     refreshChannels();
-    invitedChannels.value = channelActionsService.getInvitedChannels();
   }
 
   function afterChannelRemoved(channelId: string) {
     refreshChannels();
     removeChannelNotifications(channelId);
-    if (activeChannelId.value === channelId) {
-      activeChannelId.value = channels.value[0]?.id || null;
-    }
   }
 
   function acceptInvite(inviteId: string) {

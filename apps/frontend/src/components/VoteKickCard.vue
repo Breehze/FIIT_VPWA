@@ -6,7 +6,7 @@
   >
     <q-card-section class="row items-center no-wrap q-px-md q-py-sm text-caption">
       <span class="col" role="status">
-        Kick @{{ vote.target.nick }} · {{ vote.voterIds.length }} / {{ KICK_VOTE_THRESHOLD }} votes
+        Kick @{{ vote.target.nick }} · {{ vote.voteCount }} / {{ KICK_VOTE_THRESHOLD }} votes
       </span>
       <q-btn
         flat
