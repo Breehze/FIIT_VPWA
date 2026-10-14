@@ -19,7 +19,7 @@
       @select-channel="onSelectChannel"
       @create-channel="showCreateChannel = true"
     />
-    <CreateChannelDialog v-model="showCreateChannel" />
+    <CreateChannelDialog v-model="showCreateChannel" @create="handleCreateChannel" />
 
     <q-separator class="q-mt-auto q-mb-md" />
 
@@ -38,18 +38,29 @@ import ProfileCard from './ProfileCard.vue';
 import PendingInvites from './PendingInvites.vue';
 import ChannelList from './ChannelList.vue';
 import CreateChannelDialog from '@/components/CreateChannelDialog.vue';
-import type { Channel } from '@vpwa/shared';
+import type { Channel, ChannelType } from '@vpwa/shared';
 import { ref } from 'vue';
 
 const { currentUser, logout } = useAuth();
 const { updateStatus } = useUserActions();
-const { channels, invitedChannels, activeChannelId, selectChannel, acceptInvite, rejectInvite } =
-  useChannels();
+const {
+  channels,
+  invitedChannels,
+  activeChannelId,
+  selectChannel,
+  createChannel,
+  acceptInvite,
+  rejectInvite,
+} = useChannels();
 
 const showCreateChannel = ref(false);
 
 function onSelectChannel(channel: Channel) {
   selectChannel(channel.id);
+}
+
+function handleCreateChannel(payload: { name: string; type: ChannelType }) {
+  createChannel(payload.name, payload.type);
 }
 </script>
 
