@@ -16,7 +16,7 @@
       :active="channel.id === activeChannelId"
       class="channel"
       active-class="channel-active"
-      @click="handleChannelClick(channel)"
+      @click="emit('selectChannel', channel)"
     >
       <q-item-section avatar style="min-width: 28px">
         <span v-if="channel.type === 'private'">🔒</span>
@@ -74,7 +74,7 @@ import { useChannels } from '@/composables/useChannels';
 import { useNotifications } from '@/composables/useNotifications';
 
 const { leaveChannel, deleteChannel } = useChannels();
-const { getUnreadCount, markChannelAsRead } = useNotifications();
+const { getUnreadCount } = useNotifications();
 const openMenuChannelId = ref<string | null>(null);
 
 defineProps<{
@@ -87,11 +87,6 @@ const emit = defineEmits<{
   (e: 'selectChannel', channel: Channel): void;
   (e: 'createChannel'): void;
 }>();
-
-function handleChannelClick(channel: Channel): void {
-  emit('selectChannel', channel);
-  markChannelAsRead(channel.id);
-}
 </script>
 
 <style scoped lang="scss">
