@@ -82,7 +82,7 @@ const emit = defineEmits<{
 
 .accept-button {
   color: white;
-  background: linear-gradient(90deg, $blush-400, $lilac-400);
+  background: linear-gradient(90deg, $blush-300, $lilac-400);
 }
 
 .decline-button {

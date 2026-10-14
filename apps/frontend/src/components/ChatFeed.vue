@@ -9,7 +9,7 @@
           'mentioned-message': isMentioned(msg.textContent),
         }"
       >
-        <div v-if="isMentioned(msg.textContent)" class="mention-label text-uppercase q-mb-xs">
+        <div v-if="isMentioned(msg.textContent)" class="mention-label text-uppercase q-mb-sm">
           🌷 For you
         </div>
         <div class="row items-start no-wrap">
@@ -160,7 +160,7 @@ watch(scrollTriggers, async () => {
 
 .mention-label {
   color: $blush-500;
-  font-size: 11px;
+  font-size: 10px;
 }
 
 .mentioned-message {

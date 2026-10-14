@@ -16,7 +16,7 @@
       :active="channel.id === activeChannelId"
       class="channel"
       active-class="channel-active"
-      @click="emit('selectChannel', channel)"
+      @click="handleChannelClick(channel)"
     >
       <q-item-section avatar style="min-width: 28px">
         <span v-if="channel.type === 'private'">🔒</span>
@@ -28,40 +28,54 @@
       </q-item-section>
 
       <q-item-section side>
-        <q-btn flat round dense size="sm" icon="more_horiz" @click.stop>
-          <q-menu class="channel-menu">
-            <q-list dense>
-              <q-item
-                class="leave-option q-ma-xs"
-                clickable
-                v-close-popup
-                @click="leaveChannel(channel.id)"
-              >
-                <q-item-section>Leave channel</q-item-section>
-              </q-item>
+        <div class="channel-actions" :class="{ 'menu-open': openMenuChannelId === channel.id }">
+          <q-badge v-if="getUnreadCount(channel.id) > 0" rounded class="unread-badge">
+            {{ getUnreadCount(channel.id) }}
+          </q-badge>
 
-              <q-item
-                v-if="channel.owner === currentUserId"
-                clickable
-                v-close-popup
-                class="delete-option text-negative q-ma-xs"
-                @click="deleteChannel(channel.id)"
-              >
-                <q-item-section>Delete channel</q-item-section>
-              </q-item>
-            </q-list>
-          </q-menu>
-        </q-btn>
+          <q-btn flat round dense icon="more_horiz" class="channel-menu-btn" @click.stop>
+            <q-menu
+              class="channel-menu"
+              @show="openMenuChannelId = channel.id"
+              @hide="openMenuChannelId = null"
+            >
+              <q-list dense>
+                <q-item
+                  class="leave-option q-ma-xs"
+                  clickable
+                  v-close-popup
+                  @click="leaveChannel(channel.id)"
+                >
+                  <q-item-section>Leave channel</q-item-section>
+                </q-item>
+
+                <q-item
+                  v-if="channel.owner === currentUserId"
+                  clickable
+                  v-close-popup
+                  class="delete-option text-negative q-ma-xs"
+                  @click="deleteChannel(channel.id)"
+                >
+                  <q-item-section>Delete channel</q-item-section>
+                </q-item>
+              </q-list>
+            </q-menu>
+          </q-btn>
+        </div>
       </q-item-section>
     </q-item>
   </q-list>
 </template>
 
 <script setup lang="ts">
+import { ref } from 'vue';
 import type { Channel } from '@vpwa/shared';
 import { useChannels } from '@/composables/useChannels';
+import { useNotifications } from '@/composables/useNotifications';
 
 const { leaveChannel, deleteChannel } = useChannels();
+const { getUnreadCount, markChannelAsRead } = useNotifications();
+const openMenuChannelId = ref<string | null>(null);
 
 defineProps<{
   channels: Channel[];
@@ -73,6 +87,11 @@ const emit = defineEmits<{
   (e: 'selectChannel', channel: Channel): void;
   (e: 'createChannel'): void;
 }>();
+
+function handleChannelClick(channel: Channel): void {
+  emit('selectChannel', channel);
+  markChannelAsRead(channel.id);
+}
 </script>
 
 <style scoped lang="scss">
@@ -112,6 +131,48 @@ const emit = defineEmits<{
 
 .channel-header {
   color: $lilac-600;
+}
+
+.unread-badge {
+  background: linear-gradient(90deg, $blush-300, $lilac-300);
+  color: white;
+
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.channel-actions {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  .unread-badge {
+    position: absolute;
+    z-index: 1;
+  }
+
+  &:has(.unread-badge) {
+    .channel-menu-btn {
+      visibility: hidden;
+    }
+
+    &:hover,
+    &.menu-open {
+      .unread-badge {
+        visibility: hidden;
+      }
+
+      .channel-menu-btn {
+        visibility: visible;
+      }
+    }
+  }
 }
 </style>
 

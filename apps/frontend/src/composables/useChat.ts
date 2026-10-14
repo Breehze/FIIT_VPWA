@@ -2,11 +2,13 @@ import { ref, watch } from 'vue'
 import type { Msg } from '@vpwa/shared'
 import { chatActionsService } from '@/services/chatActions.service'
 import { useChannels } from '@/composables/useChannels'
-import { useAuth } from './useAuth'
+import { useAuth } from './useAuth';
+import { useNotifications } from '@/composables/useNotifications';
 
 const activeMsgs = ref<Msg[]>([]);
 const hasMoreMsgs = ref(true);
 const scrollTriggers = ref(0);
+const { addUnreadMessage, markChannelAsRead } = useNotifications();
 
 export function useChat(){
   const { activeChannel } = useChannels();
@@ -15,7 +17,10 @@ export function useChat(){
   watch(
     () => activeChannel.value?.id,
     (newChannelId) => {
-      if(newChannelId) loadInitialMsgs();
+      if (newChannelId) {
+        loadInitialMsgs();
+        markChannelAsRead(newChannelId);
+      }
     },
     {immediate : true}
   )
@@ -63,6 +68,21 @@ export function useChat(){
     return chatActionsService.getUserById(senderId);
   }
 
+  function receiveMsg(newMsg: Msg): void {
+    const activeChannelId = activeChannel.value?.id;
+
+    if (newMsg.senderId === currentUser.value?.id) {
+      return;
+    }
+
+    if (newMsg.channelId === activeChannelId) {
+      activeMsgs.value.push(newMsg);
+      scrollTriggers.value++;
+    } else {
+      addUnreadMessage(newMsg.channelId, activeChannelId);
+    }
+  }
+
   return{
     activeMsgs,
     hasMoreMsgs,
@@ -70,6 +90,7 @@ export function useChat(){
     loadInitialMsgs,
     loadFollowingMsgs,
     getSender,
-    sendMsg
+    sendMsg,
+    receiveMsg,
   }
 }
