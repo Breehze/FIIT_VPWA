@@ -21,8 +21,8 @@
 - [ ] **4. Správa kanálov cez príkazy (Command Line)**
   - [x] Príkaz `/join channelName [private]` (vytvorenie alebo pripojenie do kanála)
   - [ ] Príkaz `/invite nickName` (pozvanie používateľa do kanála)
-  - [ ] Príkaz `/revoke nickName` (odobratie používateľa zo súkromného kanála správcom)
-  - [ ] Príkaz `/kick nickName` (vyhodenie používateľa: správca okamžite, členovia hlasovaním po 3 hlasoch)
+  - [x] Príkaz `/revoke nickName` (odobratie používateľa zo súkromného kanála správcom)
+  - [x] Príkaz `/kick nickName` (vyhodenie používateľa: správca okamžite, členovia hlasovaním po 3 hlasoch)
   - [ ] Obnovenie prístupu pre vyhodeného používateľa cez príkaz `/invite`
   - [x] Príkaz `/quit` (zatvorenie/zrušenie kanála správcom)
   - [ ] Validácia unikátnosti nickName a channelName
