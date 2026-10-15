@@ -6,7 +6,8 @@ const showMemberList = ref(false);
 
 export function useCommands() {
   const { currentUser } = useAuth();
-  const { activeChannel, leaveChannel, joinChannel, deleteChannel } = useChannels();
+  const { activeChannel, leaveChannel, joinChannel, deleteChannel, kickMember } =
+    useChannels();
 
   function execCommand(commandStr: string): string | null {
     const [cmd, ...args] = commandStr.slice(1).trim().split(/\s+/);
@@ -29,6 +30,8 @@ export function useCommands() {
         case 'revoke':
           break;
         case 'kick':
+          if (args.length !== 1 || !args[0]) return 'Usage: /kick nickName';
+          kickMember(channel.id, args[0]);
           break;
         case 'list':
           showMemberList.value = !showMemberList.value;
@@ -40,5 +43,5 @@ export function useCommands() {
     return null;
   }
 
-  return {  showMemberList, execCommand };
+  return { showMemberList, execCommand };
 }

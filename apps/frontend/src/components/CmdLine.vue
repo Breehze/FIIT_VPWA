@@ -38,7 +38,7 @@
     </q-list>
 
     <div class="q-pa-md">
-      <TypingIndicator/>
+      <TypingIndicator />
 
       <q-input
         class="q-mb-sm q-mx-sm q-py-xs cmd"
@@ -52,6 +52,7 @@
       >
         <template #prepend>🌸</template>
       </q-input>
+      <div v-if="commandError" role="alert" class="text-negative q-mx-sm">{{ commandError }}</div>
     </div>
   </div>
 </template>
@@ -70,6 +71,7 @@ const { activeChannelMembers } = useChannels();
 const { execCommand } = useCommands();
 
 const typed = ref('');
+const commandError = ref<string | null>(null);
 const mentionMatch = computed(() => {
   return typed.value.match(/@([a-zA-Z0-9_-]*)$/);
 });
@@ -90,8 +92,10 @@ function onSubmit() {
     return;
   }
   if (inputMsg.startsWith('/')) {
-    execCommand(inputMsg);
+    commandError.value = execCommand(inputMsg);
+    if (commandError.value) return;
   } else {
+    commandError.value = null;
     sendMsg(inputMsg);
   }
 

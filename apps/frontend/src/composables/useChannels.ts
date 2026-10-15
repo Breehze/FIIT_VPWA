@@ -1,4 +1,4 @@
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 import type { Channel, ChannelType, User } from '@vpwa/shared';
 import { channelActionsService, type InvitedChannel } from '@/services/channelActions.service';
 import { useAuth } from '@/composables/useAuth';
@@ -12,13 +12,22 @@ export function useChannels() {
   const { currentUser } = useAuth();
   const { removeChannelNotifications } = useNotifications();
 
+  watch(() => currentUser.value?.id, refreshChannels, { immediate: true });
+
   const activeChannel = computed(() => {
     return channels.value.find((c) => c.id === activeChannelId.value) || null;
   });
 
   const activeChannelMembers = computed<User[]>(() => {
-    if (!activeChannelId.value) return [];
-    return channelActionsService.getChannelMembers(activeChannelId.value);
+    const channel = channels.value.find((c) => c.id === activeChannelId.value);
+    if (!channel) return [];
+    return channelActionsService.getChannelMembers(channel.id);
+  });
+
+  const activeKickVotes = computed(() => {
+    const channel = channels.value.find((c) => c.id === activeChannelId.value);
+    if (!channel) return [];
+    return channelActionsService.getKickVotes(channel.id);
   });
 
   function selectChannel(channelId: string) {
@@ -27,6 +36,10 @@ export function useChannels() {
 
   function refreshChannels() {
     channels.value = channelActionsService.getUserChannels(currentUser.value?.id);
+    if (activeChannelId.value && !channels.value.some((c) => c.id === activeChannelId.value)) {
+      removeChannelNotifications(activeChannelId.value);
+      activeChannelId.value = channels.value[0]?.id ?? null;
+    }
   }
 
   function createChannel(name: string, type: ChannelType) {
@@ -54,12 +67,14 @@ export function useChannels() {
     afterChannelRemoved(channelId);
   }
 
+  function kickMember(channelId: string, nickname: string) {
+    channelActionsService.kickMember(channelId, nickname, currentUser.value?.id);
+    refreshChannels();
+  }
+
   function afterChannelRemoved(channelId: string) {
     refreshChannels();
     removeChannelNotifications(channelId);
-    if (activeChannelId.value === channelId) {
-      activeChannelId.value = channels.value[0]?.id || null;
-    }
   }
 
   function acceptInvite(inviteId: string) {
@@ -82,11 +97,13 @@ export function useChannels() {
     activeChannelId,
     activeChannel,
     activeChannelMembers,
+    activeKickVotes,
     selectChannel,
     createChannel,
     joinChannel,
     leaveChannel,
     deleteChannel,
+    kickMember,
     acceptInvite,
     rejectInvite,
   };
