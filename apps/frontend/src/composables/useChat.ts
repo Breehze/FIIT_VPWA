@@ -8,11 +8,12 @@ import { useNotifications } from '@/composables/useNotifications';
 const activeMsgs = ref<Msg[]>([]);
 const hasMoreMsgs = ref(true);
 const scrollTriggers = ref(0);
+const missedMessages: Msg[] = [];
 
 export function useChat() {
-  const { activeChannel } = useChannels();
+  const { activeChannel, refreshChannels } = useChannels();
   const { currentUser } = useAuth();
-  const { addUnreadMessage, markChannelAsRead } = useNotifications();
+  const { addUnreadMessage, markChannelAsRead, notifyIncomingMessage } = useNotifications();
 
   watch(
     () => activeChannel.value?.id,
@@ -23,6 +24,27 @@ export function useChat() {
       }
     },
     { immediate: true },
+  );
+
+  watch(
+    () => currentUser.value?.state,
+    (newStatus, oldStatus) => {
+      if (oldStatus !== 'Offline' || newStatus !== 'Online') {
+        return;
+      }
+
+      refreshChannels();
+
+      for (const msg of missedMessages.splice(0)) {
+        addUnreadMessage(msg.channelId, activeChannel.value?.id);
+      }
+
+      loadInitialMsgs();
+
+      if (activeChannel.value) {
+        markChannelAsRead(activeChannel.value.id);
+      }
+    },
   );
 
   function loadInitialMsgs(): void {
@@ -73,6 +95,21 @@ export function useChat() {
 
     if (newMsg.senderId === currentUser.value?.id) {
       return;
+    }
+
+    if (currentUser.value?.state === 'Offline') {
+      missedMessages.push(newMsg);
+      return;
+    }
+
+    const sender = getSender(newMsg.senderId);
+
+    if (sender) {
+      notifyIncomingMessage(
+        newMsg.senderId,
+        `${sender.name} ${sender.lastName}`,
+        newMsg.textContent,
+      );
     }
 
     if (newMsg.channelId === activeChannelId) {
