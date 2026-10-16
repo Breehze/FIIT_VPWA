@@ -104,6 +104,7 @@ export function useChannels() {
     activeChannelMembers,
     activeKickVotes,
     selectChannel,
+    refreshChannels,
     createChannel,
     joinChannel,
     leaveChannel,

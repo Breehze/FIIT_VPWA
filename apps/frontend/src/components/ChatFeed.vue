@@ -1,5 +1,12 @@
 <template>
   <div ref="scrollContainer" class="col scroll q-px-xl q-py-md message-scroll">
+    <q-btn
+      label="Test notification (5s)"
+      color="primary"
+      no-caps
+      class="q-mb-md"
+      @click="testNotification"
+    />
     <div v-if="activeKickVotes.length" class="vote-kick-overlay column q-gutter-y-sm q-mb-md">
       <VoteKickCard
         v-for="vote in activeKickVotes"
@@ -73,11 +80,13 @@ import { useChannels } from '@/composables/useChannels';
 import { useAvatar } from '@/composables/useAvatar';
 import { useAuth } from '@/composables/useAuth';
 import VoteKickCard from '@/components/VoteKickCard.vue';
+import { chatActionsService } from '@/services/chatActions.service';
 
 const { currentUser } = useAuth();
 const { getAvatarColor } = useAvatar();
 const { activeChannel, activeChannelMembers, activeKickVotes } = useChannels();
-const { activeMsgs, hasMoreMsgs, scrollTriggers, loadFollowingMsgs, getSender } = useChat();
+const { activeMsgs, hasMoreMsgs, scrollTriggers, loadFollowingMsgs, getSender, receiveMsg } =
+  useChat();
 
 const scrollContainer = ref<HTMLElement | null>(null);
 
@@ -120,6 +129,27 @@ function isValidMention(part: string): boolean {
   return activeChannelMembers.value.some(
     (member) => member.nick.toLowerCase() === nick.toLowerCase(),
   );
+}
+
+function testNotification(): void {
+  const channelId = activeChannel.value?.id;
+  const user = currentUser.value;
+
+  if (!channelId || !user) return;
+
+  const sender = activeChannelMembers.value.find((member) => member.id !== user.id);
+
+  if (!sender) return;
+
+  setTimeout(() => {
+    const newMsg = chatActionsService.sendMessage(
+      channelId,
+      sender.id,
+      `Hey, this is a test notification!`,
+    );
+
+    receiveMsg(newMsg);
+  }, 5000);
 }
 
 watch([scrollTriggers, activeKickVotes], async () => {

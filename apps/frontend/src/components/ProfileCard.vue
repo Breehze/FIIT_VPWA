@@ -86,7 +86,9 @@
 
         <div class="notification-text col">
           <div class="text-weight-medium">Mentions only</div>
-          <div class="notification-caption">Only notify me when someone mentions @{{ user.nick }}.</div>
+          <div class="notification-caption">
+            Only notify me when someone mentions @{{ user.nick }}.
+          </div>
         </div>
 
         <q-toggle
@@ -96,6 +98,14 @@
           aria-label="Mentions only notifications"
         />
       </div>
+      <q-btn
+        class="full-width q-mt-sm"
+        label="Enable notifications"
+        color="primary"
+        no-caps
+        outline
+        @click="requestNotificationPermission"
+      />
     </q-card>
   </div>
 </template>
@@ -105,7 +115,7 @@ import type { User, UserState } from '@vpwa/shared';
 import { useNotifications } from '@/composables/useNotifications';
 import { computed } from 'vue';
 
-const { mentionsOnly } = useNotifications();
+const { mentionsOnly, requestNotificationPermission } = useNotifications();
 
 const props = defineProps<{
   user: User | null;
