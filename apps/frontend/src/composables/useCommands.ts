@@ -12,12 +12,17 @@ export function useCommands() {
   function execCommand(commandStr: string): string | null {
     const [cmd, ...args] = commandStr.slice(1).trim().split(/\s+/);
     const channel = activeChannel.value;
-    if (!cmd || !channel || !currentUser.value) return null;
+
+    if (!cmd  || !currentUser.value) return null;
+
+    if(cmd.toLowerCase() == 'join'){
+      if (args[0]) joinChannel(args[0], args[1] === 'private' ? 'private' : 'public');
+      return null
+    }else if(!channel) return null;
 
     try {
       switch (cmd.toLowerCase()) {
         case 'join':
-          if (args[0]) joinChannel(args[0], args[1] === 'private' ? 'private' : 'public');
           break;
         case 'quit':
           deleteChannel(channel.id);

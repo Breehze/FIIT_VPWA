@@ -14,7 +14,7 @@
         :vote="vote"
       />
     </div>
-    <q-infinite-scroll :key="activeChannel?.id ?? ''" reverse @load="onLoad">
+    <q-infinite-scroll v-if="activeChannel" :key="activeChannel?.id ?? ''" reverse @load="onLoad">
       <div
         v-for="msg in activeMsgs"
         :key="msg.id"
