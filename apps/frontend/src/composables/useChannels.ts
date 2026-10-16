@@ -19,9 +19,20 @@ export function useChannels() {
   });
 
   const activeChannelMembers = computed<User[]>(() => {
-    const channel = channels.value.find((c) => c.id === activeChannelId.value);
-    if (!channel) return [];
-    return channelActionsService.getChannelMembers(channel.id);
+    if (!activeChannelId.value) return [];
+
+    const members = channelActionsService.getChannelMembers(activeChannelId.value);
+
+    return members.map((member) => {
+      if (member.id === currentUser.value?.id) {
+        return {
+          ...member,
+          state: currentUser.value.state,
+        };
+      }
+
+      return member;
+    });
   });
 
   const activeKickVotes = computed(() => {
