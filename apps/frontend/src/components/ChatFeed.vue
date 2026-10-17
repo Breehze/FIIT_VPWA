@@ -1,12 +1,15 @@
 <template>
   <div ref="scrollContainer" class="col scroll q-px-xl q-py-md message-scroll">
-    <q-btn
-      label="Test notification (5s)"
-      color="primary"
-      no-caps
-      class="q-mb-md"
-      @click="testNotification"
-    />
+    <div class="row q-gutter-sm q-mb-md">
+      <q-btn label="Test notification (5s)" color="primary" no-caps @click="testNotification" />
+
+      <q-btn
+        label="Test notification with mention (5s)"
+        color="primary"
+        no-caps
+        @click="testMention"
+      />
+    </div>
     <div v-if="activeKickVotes.length" class="vote-kick-overlay column q-gutter-y-sm q-mb-md">
       <VoteKickCard
         v-for="vote in activeKickVotes"
@@ -146,6 +149,27 @@ function testNotification(): void {
       channelId,
       sender.id,
       `Hey, this is a test notification!`,
+    );
+
+    receiveMsg(newMsg);
+  }, 5000);
+}
+
+function testMention() {
+  const channelId = activeChannel.value?.id;
+  const user = currentUser.value;
+
+  if (!channelId || !user) return;
+
+  const sender = activeChannelMembers.value.find((member) => member.id !== user.id);
+
+  if (!sender) return;
+
+  setTimeout(() => {
+    const newMsg = chatActionsService.sendMessage(
+      channelId,
+      sender.id,
+      `Hey, @${user.nick} this is a test notification!`,
     );
 
     receiveMsg(newMsg);
