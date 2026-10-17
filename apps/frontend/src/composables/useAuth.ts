@@ -36,7 +36,7 @@ export function useAuth() {
     try {
       authService.logout();
       currentUser.value = null;
-      await router.push('/auth');
+      await router.push('/');
     } finally {
       isLoading.value = false;
     }
