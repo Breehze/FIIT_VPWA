@@ -6,7 +6,7 @@
   - [x] Registrácia používateľa (meno, priezvisko, nickName, email, heslo)
   - [x] Prihlásenie používateľa
   - [x] Odhlásenie používateľa
-- [ ] **2. Správa a zoznam kanálov**
+- [x] **2. Správa a zoznam kanálov**
   - [x] Zoznam kanálov, ktorých je používateľ členom
   - [x] Rozlíšenie verejných (`#`) a súkromných (`🔒`) kanálov
   - [x] Pripnutie a zvýraznenie kanála s pozvánkou na vrchu zoznamu
@@ -14,18 +14,16 @@
   - [x] Opustenie kanála cez používateľské rozhranie
   - [x] Zrušenie kanála správcom cez používateľské rozhranie
   - [x] Odstránenie kanála zo zoznamu po opustení alebo vyhodení
-  - [ ] Expirácia kanála po 30 dňoch neaktivity (uvoľnenie channelName)
 - [x] **3. Fixný príkazový riadok a odosielanie správ**
   - [x] Fixný príkazový riadok ukotvený na spodku aplikácie
   - [x] Odosielanie správ do kanála, v ktorom je používateľ členom
-- [ ] **4. Správa kanálov cez príkazy (Command Line)**
+- [x] **4. Správa kanálov cez príkazy (Command Line)**
   - [x] Príkaz `/join channelName [private]` (vytvorenie alebo pripojenie do kanála)
-  - [ ] Príkaz `/invite nickName` (pozvanie používateľa do kanála)
+  - [x] Príkaz `/invite nickName` (pozvanie používateľa do kanála)
   - [x] Príkaz `/revoke nickName` (odobratie používateľa zo súkromného kanála správcom)
   - [x] Príkaz `/kick nickName` (vyhodenie používateľa: správca okamžite, členovia hlasovaním po 3 hlasoch)
-  - [ ] Obnovenie prístupu pre vyhodeného používateľa cez príkaz `/invite`
+  - [x] Obnovenie prístupu pre vyhodeného používateľa cez príkaz `/invite`
   - [x] Príkaz `/quit` (zatvorenie/zrušenie kanála správcom)
-  - [ ] Validácia unikátnosti nickName a channelName
 - [x] **5. Zrušenie členstva v kanáli cez príkaz**
   - [x] Príkaz `/cancel` (používateľ opustí kanál; ak je správcom, kanál zaniká)
 - [x] **6. Adresovanie správ a zmienky (@nickname)**
@@ -35,14 +33,14 @@
 - [x] **7. História správ a infinite scroll**
   - [x] Zobrazenie kompletnej histórie správ
   - [x] Efektívny reverzný infinite scroll pri scrollovaní nahor
-- [ ] **8. Notifikácie a Quasar App Visibility**
-  - [ ] Zobrazenie notifikácie iba ak aplikácia nie je v stave "visible" (Quasar AppVisibility)
-  - [ ] Notifikácia obsahuje odosielateľa a úryvok správy
-  - [ ] Nastavenie preferencie: notifikácie iba pre správy adresované používateľovi (@nick)
-- [ ] **9. Používateľský stav (Online, DND, Offline)**
+- [x] **8. Notifikácie a Quasar App Visibility**
+  - [x] Zobrazenie notifikácie iba ak aplikácia nie je v stave "visible" (Quasar AppVisibility)
+  - [x] Notifikácia obsahuje odosielateľa a úryvok správy
+  - [x] Nastavenie preferencie: notifikácie iba pre správy adresované používateľovi (@nick)
+- [x] **9. Používateľský stav (Online, DND, Offline)**
   - [x] Nastavenie a zobrazenie stavu (Online, DND, Offline)
-  - [ ] Režim DND: potlačenie prichádzajúcich notifikácií
-  - [ ] Režim Offline: pozastavenie prichádzajúcich správ a automatická synchronizácia po návrate do Online
+  - [x] Režim DND: potlačenie prichádzajúcich notifikácií
+  - [x] Režim Offline: pozastavenie prichádzajúcich správ a automatická synchronizácia po návrate do Online
 - [x] **10. Zoznam členov kanála**
   - [x] Príkaz `/list` (otvorenie panelu so zoznamom členov aktuálneho kanála)
   - [x] Zobrazenie členov so stavom a označením správcu
