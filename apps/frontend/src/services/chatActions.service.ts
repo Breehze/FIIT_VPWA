@@ -1,7 +1,7 @@
 import type { ContentType, Msg, User } from '@vpwa/shared';
 import { DEFAULT_MESSAGES, getMockUserById, MOCK_USERS } from '@/mocks';
 
-const STORAGE_KEY_MESSAGES = 'mock_messages';
+let storedMessages: Msg[] = structuredClone(DEFAULT_MESSAGES);
 
 class ChatActionsService {
   getUsers(): User[] {
@@ -13,16 +13,11 @@ class ChatActionsService {
   }
 
   getAllMessages(): Msg[] {
-    const raw = localStorage.getItem(STORAGE_KEY_MESSAGES);
-    if (!raw) {
-      this.saveMessages(DEFAULT_MESSAGES);
-      return DEFAULT_MESSAGES;
-    }
-    return JSON.parse(raw);
+    return storedMessages;
   }
 
   saveMessages(messages: Msg[]): void {
-    localStorage.setItem(STORAGE_KEY_MESSAGES, JSON.stringify(messages));
+    storedMessages = messages;
   }
 
   getChannelMessages(channelId: string, limit = 10, beforeId?: number): Msg[] {
