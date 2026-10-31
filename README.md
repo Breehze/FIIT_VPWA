@@ -2,53 +2,60 @@
 
 ## Prehľad implementácie prípadov použitia (TODO)
 
-- [x] **1. Registrácia, prihlásenie a odhlásenie používateľa**
-  - [x] Registrácia používateľa (meno, priezvisko, nickName, email, heslo)
-  - [x] Prihlásenie používateľa
-  - [x] Odhlásenie používateľa
-- [x] **2. Správa a zoznam kanálov**
-  - [x] Zoznam kanálov, ktorých je používateľ členom
-  - [x] Rozlíšenie verejných (`#`) a súkromných (`🔒`) kanálov
-  - [x] Pripnutie a zvýraznenie kanála s pozvánkou na vrchu zoznamu
-  - [x] Vytvorenie kanála cez používateľské rozhranie (nastavenie tvorcu ako správcu)
-  - [x] Opustenie kanála cez používateľské rozhranie
-  - [x] Zrušenie kanála správcom cez používateľské rozhranie
-  - [x] Odstránenie kanála zo zoznamu po opustení alebo vyhodení
-- [x] **3. Fixný príkazový riadok a odosielanie správ**
-  - [x] Fixný príkazový riadok ukotvený na spodku aplikácie
-  - [x] Odosielanie správ do kanála, v ktorom je používateľ členom
-- [x] **4. Správa kanálov cez príkazy (Command Line)**
-  - [x] Príkaz `/join channelName [private]` (vytvorenie alebo pripojenie do kanála)
-  - [x] Príkaz `/invite nickName` (pozvanie používateľa do kanála)
-  - [x] Príkaz `/revoke nickName` (odobratie používateľa zo súkromného kanála správcom)
-  - [x] Príkaz `/kick nickName` (vyhodenie používateľa: správca okamžite, členovia hlasovaním po 3 hlasoch)
-  - [x] Obnovenie prístupu pre vyhodeného používateľa cez príkaz `/invite`
-  - [x] Príkaz `/quit` (zatvorenie/zrušenie kanála správcom)
-- [x] **5. Zrušenie členstva v kanáli cez príkaz**
-  - [x] Príkaz `/cancel` (používateľ opustí kanál; ak je správcom, kanál zaniká)
-- [x] **6. Adresovanie správ a zmienky (@nickname)**
-  - [x] Adresovanie správy konkrétnemu používateľovi cez `@nickname`
-  - [x] Zvýraznenie adresovanej správy pre daného používateľa v zozname správ
-  - [x] Autocomplete / popup pri písaní znaku `@` v príkazovom riadku
-- [x] **7. História správ a infinite scroll**
-  - [x] Zobrazenie kompletnej histórie správ
-  - [x] Efektívny reverzný infinite scroll pri scrollovaní nahor
-- [x] **8. Notifikácie a Quasar App Visibility**
-  - [x] Zobrazenie notifikácie iba ak aplikácia nie je v stave "visible" (Quasar AppVisibility)
-  - [x] Notifikácia obsahuje odosielateľa a úryvok správy
-  - [x] Nastavenie preferencie: notifikácie iba pre správy adresované používateľovi (@nick)
-- [x] **9. Používateľský stav (Online, DND, Offline)**
-  - [x] Nastavenie a zobrazenie stavu (Online, DND, Offline)
-  - [x] Režim DND: potlačenie prichádzajúcich notifikácií
-  - [x] Režim Offline: pozastavenie prichádzajúcich správ a automatická synchronizácia po návrate do Online
-- [x] **10. Zoznam členov kanála**
-  - [x] Príkaz `/list` (otvorenie panelu so zoznamom členov aktuálneho kanála)
-  - [x] Zobrazenie členov so stavom a označením správcu
-- [x] **11. Indikátor písania a náhľad rozpísanej správy (Draft Peek)**
-  - [x] Indikátor v stavovej lište o tom, kto aktuálne píše správu (napr. "Ed is typing...")
-  - [x] Živý náhľad rozpísaného textu v reálnom čase po kliknutí na nickName používateľa
-
----
+- [ ] **1. Registrácia, prihlásenie a odhlásenie používateľa**
+  - [ ] Registrácia používateľa 
+  - [ ] Prihlásenie a overovanie identity pri chránených operáciách
+  - [ ] Odhlásenie so zneplatnením prístupu
+- [ ] **2. Správa a zoznam kanálov**
+  - [ ] Zoznam kanálov, ktorých je používateľ členom, s rozlíšením verejných a súkromných kanálov
+  - [ ] Údaje o pozvánkach na pripnutie a zvýraznenie kanálov vo frontende
+  - [ ] Vytvorenie kanála cez API pre používateľské rozhranie (unikátny názov, tvorca ako správca a člen)
+  - [ ] Opustenie kanála a zrušenie kanála správcom cez API
+  - [ ] Aktualizácia zoznamov po opustení, trvalom vyhodení alebo zrušení kanála
+  - [ ] Automatické zrušenie kanála po viac ako 30 dňoch bez novej správy a uvoľnenie jeho názvu
+- [ ] **3. Fixný príkazový riadok a odosielanie správ**
+  - [ ] Prijatie a uloženie správy iba od člena príslušného kanála
+  - [ ] Doručenie novej správy oprávneným členom v reálnom čase
+  - [ ] Aktualizácia času poslednej aktivity kanála pri novej správe
+  - [ ] Serverová validácia správ a operácií vyvolaných príkazovým riadkom 
+- [ ] **4. Správa kanálov cez príkazy (Command Line)**
+  - [ ] `/join channelName [private]`: vytvorenie neexistujúceho kanála alebo vstup do existujúceho verejného kanála bez banu
+  - [ ] `/invite nickName`: v súkromnom kanáli iba správca, vo verejnom ľubovoľný člen
+  - [ ] Evidencia pozvánok, ich stavov a spracovanie odpovede pozvaného používateľa
+  - [ ] `/revoke nickName`: odobratie používateľa zo súkromného kanála iba správcom
+  - [ ] `/kick nickName`: vo verejnom kanáli trvalý ban po hlasoch aspoň troch rôznych členov, bez opakovaného započítania hlasu
+  - [ ] `/kick nickName` od správcu: okamžitý trvalý ban bez hlasovania
+  - [ ] Obnovenie prístupu používateľovi s banom cez `/invite` od správcu
+  - [ ] `/quit`: zrušenie kanála iba správcom
+  - [ ] Kontrola členstva, oprávnení a banu pri každej operácii na serveri
+- [ ] **5. Zrušenie členstva v kanáli cez príkaz**
+  - [ ] `/cancel`: zrušenie členstva používateľa
+  - [ ] Zrušenie celého kanála, ak `/cancel` vykoná správca
+  - [ ] Informovanie dotknutých klientov o zmene členstva alebo zániku kanála
+- [ ] **6. Adresovanie správ a zmienky (@nickname)**
+  - [ ] Spracovanie `@nickname` a uloženie adresátov správy
+  - [ ] Vrátenie údajov potrebných na zvýraznenie adresovanej správy vo frontende
+- [ ] **7. História správ a infinite scroll**
+  - [ ] Sprístupnenie kompletnej histórie správ iba členom kanála
+  - [ ] Efektívne stránkovanie histórie pre infinite scroll so stabilným poradím správ
+- [ ] **8. Notifikácie a Quasar App Visibility**
+  - [ ] Poskytnutie odosielateľa, úryvku správy a údajov o adresovaní na vytvorenie notifikácie
+  - [ ] Ukladanie preferencie notifikácií iba pre adresované správy
+  - [ ] Rešpektovanie DND a preferencie adresovaných správ pri prípadnom serverovom odosielaní notifikácií
+  - [ ] Dodanie údajov frontendu, ktorý zobrazuje notifikácie iba pri neviditeľnej aplikácii cez Quasar AppVisibility
+- [ ] **9. Používateľský stav (Online, DND, Offline)**
+  - [ ] Ukladanie a zmena stavu používateľa (`Online`, `DND`, `Offline`)
+  - [ ] Sprístupnenie stavov ostatným oprávneným používateľom a ich aktualizácia v reálnom čase
+  - [ ] Poskytnutie stavu DND na potlačenie notifikácií
+  - [ ] V stave Offline nedoručovať nové správy naživo
+  - [ ] Po návrate do Online umožniť automatickú synchronizáciu zmeškaných správ a zmien kanálov
+- [ ] **10. Zoznam členov kanála**
+  - [ ] `/list`: vrátenie členov kanála iba používateľovi, ktorý je tiež jeho členom
+  - [ ] Vrátenie stavov členov a označenia správcu
+- [ ] **11. Indikátor písania a náhľad rozpísanej správy (Draft Peek)**
+  - [ ] Prenos informácie o aktuálne píšucich používateľoch iba členom príslušného kanála
+  - [ ] Prenos každej zmeny rozpísaného textu pre živý náhľad
+  - [ ] Kontrola členstva pri odosielaní aj odbere udalostí písania a náhľadu
 
 ## Getting Started
 
