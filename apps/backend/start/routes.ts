@@ -10,8 +10,11 @@
 import { middleware } from '#start/kernel'
 import router from '@adonisjs/core/services/router'
 import { controllers } from '#generated/controllers'
+import  db  from  '@adonisjs/lucid/services/db'
 
-router.get('/', () => {
+router.get('/', async () => {
+  const result = await db.rawQuery('SELECT 1 AS connected');
+  console.log(result.rows)
   return { hello: 'world' }
 })
 
