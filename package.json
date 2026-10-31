@@ -6,7 +6,9 @@
   "license": "ISC",
   "scripts": {
     "dev:frontend": "pnpm --filter @vpwa/frontend dev",
-    "build:frontend": "pnpm --filter @vpwa/frontend build"
+    "build:frontend": "pnpm --filter @vpwa/frontend build",
+    "dev:backend": "pnpm --filter @vpwa/backend dev",
+    "build:backend": "pnpm --filter @vpwa/backend build"
   },
   "devEngines": {
     "packageManager": {
