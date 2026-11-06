@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto'
 import User from '#models/user'
 import { signupValidator } from '#validators/user'
 import type { HttpContext } from '@adonisjs/core/http'
@@ -5,9 +6,18 @@ import UserTransformer from '#transformers/user_transformer'
 
 export default class NewAccountController {
   async store({ request, serialize }: HttpContext) {
-    const { fullName, email, password } = await request.validateUsing(signupValidator)
+    const { name, lastName, nick, email, password } = await request.validateUsing(signupValidator)
 
-    const user = await User.create({ fullName, email, password })
+    const user = await User.create({
+      id: randomUUID(),
+      name: name ?? null,
+      lastName: lastName ?? null,
+      nick,
+      email,
+      password,
+      state: 'Online',
+      mentionOnlyNotif: false,
+    })
     const token = await User.accessTokens.create(user)
 
     return serialize({
