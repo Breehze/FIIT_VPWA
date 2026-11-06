@@ -17,7 +17,7 @@ export default class Msg extends MsgSchema {
   })
   declare channel: BelongsTo<typeof Channel>
 
-  @hasMany(() => MsgMention,{
+  @hasMany(() => MsgMention, {
     foreignKey: 'msgId',
   })
   declare mentions: HasMany<typeof MsgMention>
