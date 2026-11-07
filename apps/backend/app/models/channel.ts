@@ -1,3 +1,6 @@
+import { randomUUID } from 'node:crypto'
+import { DateTime } from 'luxon'
+import db from '@adonisjs/lucid/services/db'
 import { ChannelSchema } from '#database/schema'
 import { belongsTo, hasMany } from '@adonisjs/lucid/orm'
 import type { BelongsTo, HasMany } from '@adonisjs/lucid/types/relations'
@@ -5,8 +8,10 @@ import type { BelongsTo, HasMany } from '@adonisjs/lucid/types/relations'
 import User from '#models/user'
 import UserChannel from '#models/user_channel'
 import Msg from '#models/msg'
+import MsgMention from '#models/msg_mention'
 import Invite from '#models/invite'
 import VoteKick from '#models/vote_kick'
+import VoteKickVoter from '#models/vote_kick_voter'
 
 export default class Channel extends ChannelSchema {
   @belongsTo(() => User, {
@@ -33,4 +38,79 @@ export default class Channel extends ChannelSchema {
     foreignKey: 'channelId',
   })
   declare voteKicks: HasMany<typeof VoteKick>
+
+  static normalizeName(rawName: string): string {
+    return rawName.trim().replace(/^#/, '')
+  }
+
+  static async listForUser(userId: string): Promise<Channel[]> {
+    return this.query()
+      .whereHas('memberships', (query) => {
+        query.where('userId', userId).where('banned', false)
+      })
+      .orderBy('lastActivity', 'desc')
+  }
+
+  static async findByName(rawName: string): Promise<Channel | null> {
+    const name = this.normalizeName(rawName)
+    return this.query().whereILike('name', name).first()
+  }
+
+  static async createWithOwner(
+    ownerId: string,
+    rawName: string,
+    type: 'public' | 'private'
+  ): Promise<Channel> {
+    const name = this.normalizeName(rawName)
+    const now = DateTime.now()
+
+    return db.transaction(async (trx) => {
+      const channel = await this.create(
+        {
+          id: randomUUID(),
+          name,
+          type,
+          owner: ownerId,
+          lastActivity: now,
+          createdAt: now,
+        },
+        { client: trx }
+      )
+
+      await UserChannel.create(
+        {
+          id: randomUUID(),
+          channelId: channel.id,
+          userId: ownerId,
+          banned: false,
+        },
+        { client: trx }
+      )
+
+      return channel
+    })
+  }
+
+  isExpired(inactiveDaysLimit = 30): boolean {
+    const cutoff = DateTime.now().minus({ days: inactiveDaysLimit })
+    return this.lastActivity < cutoff
+  }
+
+  async deleteWithRelations(): Promise<void> {
+    await db.transaction(async (trx) => {
+      const msgSubquery = Msg.query({ client: trx }).where('channelId', this.id).select('id')
+      await MsgMention.query({ client: trx }).whereIn('msgId', msgSubquery).delete()
+      await Msg.query({ client: trx }).where('channelId', this.id).delete()
+
+      const voteKickSubquery = VoteKick.query({ client: trx })
+        .where('channelId', this.id)
+        .select('id')
+      await VoteKickVoter.query({ client: trx }).whereIn('voteKickId', voteKickSubquery).delete()
+      await VoteKick.query({ client: trx }).where('channelId', this.id).delete()
+
+      await Invite.query({ client: trx }).where('channelId', this.id).delete()
+      await UserChannel.query({ client: trx }).where('channelId', this.id).delete()
+      await Channel.query({ client: trx }).where('id', this.id).delete()
+    })
+  }
 }

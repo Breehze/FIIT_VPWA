@@ -1,3 +1,4 @@
+import { Exception } from '@adonisjs/core/exceptions'
 import { UserSchema } from '#database/schema'
 import hash from '@adonisjs/core/services/hash'
 import { compose } from '@adonisjs/core/helpers'
@@ -74,5 +75,24 @@ export default class User extends compose(UserSchema, withAuthFinder(hash)) {
     return (first || last || this.nick?.trim() || this.email.split('@')[0])
       .slice(0, 2)
       .toUpperCase()
+  }
+
+  static async findByNick(rawNick: string): Promise<User | null> {
+    const nick = rawNick.trim().replace(/^@/, '')
+    return this.query().whereILike('nick', nick).first()
+  }
+
+  static async findByNickOrFail(rawNick: string): Promise<User> {
+    const user = await this.findByNick(rawNick)
+    if (!user) {
+      throw new Exception('User not found', { status: 404 })
+    }
+    return user
+  }
+
+  static async listActiveChannelMembers(channelId: string): Promise<User[]> {
+    return this.query().whereHas('channelMemberships', (query) => {
+      query.where('channelId', channelId).where('banned', false)
+    })
   }
 }
