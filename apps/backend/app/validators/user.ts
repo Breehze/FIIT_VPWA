@@ -26,3 +26,17 @@ export const loginValidator = vine.create({
   email: email(),
   password: vine.string(),
 })
+
+/**
+ * Validator for POST /user/set_status
+ */
+export const setStatusValidator = vine.create({
+  status: vine.enum(['Online', 'DND', 'Offline'] as const),
+})
+
+/**
+ * Validator for POST /user/set_mention_only_notif
+ */
+export const setMentionOnlyNotifValidator = vine.create({
+  notif_only: vine.boolean(),
+})
