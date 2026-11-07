@@ -6,12 +6,12 @@ export default class extends BaseSchema {
   async up() {
     this.schema.createTable(this.tableName, (table) => {
       table.uuid('id').notNullable().primary()
-      table.string('password',255).notNullable()
+      table.string('password', 255).notNullable()
       table.string('name').nullable()
       table.string('lastName').nullable()
       table.string('nick').notNullable().unique()
       table.string('email', 255).notNullable().unique()
-      table.enu('state',['Online','DND','Offline']).notNullable()
+      table.enu('state', ['Online', 'DND', 'Offline']).notNullable()
       table.boolean('mentionOnlyNotif').notNullable().defaultTo(false)
 
       table.timestamp('created_at').notNullable()

@@ -18,11 +18,9 @@ export default class NewAccountController {
       state: 'Online',
       mentionOnlyNotif: false,
     })
-    const token = await User.accessTokens.create(user)
 
     return serialize({
       user: UserTransformer.transform(user),
-      token: token.value!.release(),
     })
   }
 }
