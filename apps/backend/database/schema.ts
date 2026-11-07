@@ -50,12 +50,12 @@ export class ChannelSchema extends BaseModel {
 }
 
 export class InviteSchema extends BaseModel {
-  static $columns = ['channelId', 'createdAt', 'id', 'inviteeId', 'inviterId', 'status'] as const
+  static $columns = ['createdAt', 'channelId', 'id', 'inviteeId', 'inviterId', 'status'] as const
   $columns = InviteSchema.$columns
-  @column()
-  declare channelId: string
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime
+  @column()
+  declare channelId: string
   @column({ isPrimary: true })
   declare id: string
   @column()
@@ -78,16 +78,16 @@ export class MsgMentionSchema extends BaseModel {
 }
 
 export class MsgSchema extends BaseModel {
-  static $columns = ['cdnLink', 'channelId', 'contentType', 'createdAt', 'id', 'senderId', 'textContent'] as const
+  static $columns = ['cdnLink', 'contentType', 'createdAt', 'channelId', 'id', 'senderId', 'textContent'] as const
   $columns = MsgSchema.$columns
   @column()
   declare cdnLink: string | null
   @column()
-  declare channelId: string
-  @column()
   declare contentType: string
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime
+  @column()
+  declare channelId: string
   @column({ isPrimary: true })
   declare id: number
   @column()
@@ -146,12 +146,12 @@ export class VoteKickVoterSchema extends BaseModel {
 }
 
 export class VoteKickSchema extends BaseModel {
-  static $columns = ['channelId', 'createdAt', 'id', 'targetId'] as const
+  static $columns = ['createdAt', 'channelId', 'id', 'targetId'] as const
   $columns = VoteKickSchema.$columns
-  @column()
-  declare channelId: string
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime
+  @column()
+  declare channelId: string
   @column({ isPrimary: true })
   declare id: string
   @column()
