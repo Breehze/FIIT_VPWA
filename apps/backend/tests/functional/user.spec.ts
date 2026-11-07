@@ -21,10 +21,10 @@ test.group('User endpoints (/user)', (group) => {
     const response = await client.get('/user').header('x-user-id', user.id)
 
     response.assertStatus(200)
-    assert.equal(response.body().data.id, user.id)
-    assert.equal(response.body().data.nick, user.nick)
-    assert.equal(response.body().data.state, 'Online')
-    assert.equal(response.body().data.mentionOnlyNotif, false)
+    assert.equal(response.body().id, user.id)
+    assert.equal(response.body().nick, user.nick)
+    assert.equal(response.body().state, 'Online')
+    assert.equal(response.body().mentionOnlyNotif, false)
   })
 
   test('POST /user/set_status updates the user status', async ({ client, assert }) => {
@@ -45,7 +45,7 @@ test.group('User endpoints (/user)', (group) => {
       .json({ status: 'DND' })
 
     response.assertStatus(200)
-    assert.equal(response.body().data.state, 'DND')
+    assert.equal(response.body().state, 'DND')
 
     await user.refresh()
     assert.equal(user.state, 'DND')
@@ -92,7 +92,7 @@ test.group('User endpoints (/user)', (group) => {
       .json({ notif_only: true })
 
     response.assertStatus(200)
-    assert.equal(response.body().data.mentionOnlyNotif, true)
+    assert.equal(response.body().mentionOnlyNotif, true)
 
     await user.refresh()
     assert.isTrue(user.mentionOnlyNotif)
