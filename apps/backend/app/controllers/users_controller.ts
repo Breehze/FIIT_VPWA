@@ -10,15 +10,16 @@ export default class UsersController {
   /**
    * GET /user
    */
-  async show({ user }: HttpContext) {
-    return user
+  async show({ auth }: HttpContext) {
+    return auth.getUserOrFail()
   }
 
   /**
    * POST /user/set_status
    * Body: { status: "Online" | "DND" | "Offline" }
    */
-  async setStatus({ user, request }: HttpContext) {
+  async setStatus({ auth, request }: HttpContext) {
+    const user = auth.getUserOrFail()
     const { status } = await request.validateUsing(setStatusValidator)
     return this.userService.updateStatus(user, status)
   }
@@ -27,7 +28,8 @@ export default class UsersController {
    * POST /user/set_mention_only_notif
    * Body: { notif_only: boolean }
    */
-  async setMentionOnlyNotif({ user, request }: HttpContext) {
+  async setMentionOnlyNotif({ auth, request }: HttpContext) {
+    const user = auth.getUserOrFail()
     const { notif_only: notifOnly } = await request.validateUsing(setMentionOnlyNotifValidator)
     return this.userService.updateMentionOnlyNotif(user, notifOnly)
   }

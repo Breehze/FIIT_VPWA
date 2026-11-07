@@ -6,7 +6,7 @@ import User from '#models/user'
 test.group('User endpoints (/user)', (group) => {
   group.each.setup(() => testUtils.db().withGlobalTransaction())
 
-  test('GET /user returns the authenticated stub user', async ({ client, assert }) => {
+  test('GET /user returns the authenticated user', async ({ client, assert }) => {
     const user = await User.create({
       id: randomUUID(),
       name: 'Test',
@@ -18,7 +18,7 @@ test.group('User endpoints (/user)', (group) => {
       mentionOnlyNotif: false,
     })
 
-    const response = await client.get('/user').header('x-user-id', user.id)
+    const response = await client.get('/user').withGuard('web').loginAs(user)
 
     response.assertStatus(200)
     assert.equal(response.body().id, user.id)
@@ -41,7 +41,8 @@ test.group('User endpoints (/user)', (group) => {
 
     const response = await client
       .post('/user/set_status')
-      .header('x-user-id', user.id)
+      .withGuard('web')
+      .loginAs(user)
       .json({ status: 'DND' })
 
     response.assertStatus(200)
@@ -65,7 +66,8 @@ test.group('User endpoints (/user)', (group) => {
 
     const response = await client
       .post('/user/set_status')
-      .header('x-user-id', user.id)
+      .withGuard('web')
+      .loginAs(user)
       .json({ status: 'Busy' })
 
     response.assertStatus(422)
@@ -88,7 +90,8 @@ test.group('User endpoints (/user)', (group) => {
 
     const response = await client
       .post('/user/set_mention_only_notif')
-      .header('x-user-id', user.id)
+      .withGuard('web')
+      .loginAs(user)
       .json({ notif_only: true })
 
     response.assertStatus(200)
