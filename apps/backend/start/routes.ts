@@ -18,16 +18,14 @@ router.get('/', async () => {
   return { hello: 'world' }
 })
 
+router.post('/register', [controllers.NewAccount, 'store'])
+router.post('/login', [controllers.AccessTokens, 'store'])
+
 router
   .group(() => {
-    router.post('register', [controllers.NewAccount, 'store'])
-    router.post('login', [controllers.AccessTokens, 'store'])
-
-    router
-      .group(() => {
-        router.get('user', [controllers.Profile, 'show'])
-        router.post('logout', [controllers.AccessTokens, 'destroy'])
-      })
-      .use(middleware.auth({ guards: ['web'] }))
+    router.post('/logout', [controllers.AccessTokens, 'destroy'])
+    router.get('/user', [controllers.Users, 'show'])
+    router.post('/user/set_status', [controllers.Users, 'setStatus'])
+    router.post('/user/set_mention_only_notif', [controllers.Users, 'setMentionOnlyNotif'])
   })
-  .prefix('/api/v1')
+  .use(middleware.auth({ guards: ['web'] }))
