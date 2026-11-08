@@ -14,6 +14,7 @@ import db from '@adonisjs/lucid/services/db'
 
 const UsersController = () => import('#controllers/users_controller')
 const ChannelsController = () => import('#controllers/channels_controller')
+const InviteController = () => import('#controllers/invite_controller')
 
 router.get('/', async () => {
   const result = await db.rawQuery('SELECT 1 AS connected')
@@ -41,5 +42,8 @@ router
     router.post('/channels/:channelId/invite', [ChannelsController, 'invite'])
     router.post('/channels/:channelId/kick', [ChannelsController, 'kick'])
     router.delete('/channels/:channelId', [ChannelsController, 'destroy'])
+
+    router.get('/invites', [InviteController, 'list'])
+    router.post('/invites', [InviteController, 'processInvite'])
   })
   .use(middleware.auth({ guards: ['web'] }))
