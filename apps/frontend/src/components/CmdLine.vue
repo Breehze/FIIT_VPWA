@@ -86,14 +86,19 @@ const filteredMembers = computed(() => {
   });
 });
 
-function onSubmit() {
+async function onSubmit(): Promise<void> {
   const inputMsg = typed.value.trim();
+
   if (!inputMsg) {
     return;
   }
+
   if (inputMsg.startsWith('/')) {
-    commandError.value = execCommand(inputMsg);
-    if (commandError.value) return;
+    commandError.value = await execCommand(inputMsg);
+
+    if (commandError.value) {
+      return;
+    }
   } else {
     commandError.value = null;
     sendMsg(inputMsg);

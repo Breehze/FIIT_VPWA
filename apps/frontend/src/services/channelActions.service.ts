@@ -8,6 +8,37 @@ import {
 } from '@/mocks';
 import { authService } from './auth.service';
 
+const API_URL = 'http://localhost:3333';
+
+async function channelRequest<T>(path: string, body?: object): Promise<T> {
+  const response = await fetch(`${API_URL}${path}`, {
+    method: body ? 'POST' : 'GET',
+    credentials: 'include',
+    headers: {
+      Accept: 'application/json',
+      ...(body ? { 'Content-Type': 'application/json' } : {}),
+    },
+    ...(body ? { body: JSON.stringify(body) } : {}),
+  });
+
+  const result = await response.json().catch(() => null);
+
+  if (!response.ok) {
+    const error = result as {
+      message?: string;
+      errors?: { message?: string }[];
+    } | null;
+
+    throw new Error(
+      error?.errors?.[0]?.message ??
+      error?.message ??
+      `Request failed (${response.status})`,
+    );
+  }
+
+  return result as T;
+}
+
 export type { InvitedChannel };
 
 export const KICK_VOTE_THRESHOLD = 3;
@@ -296,6 +327,30 @@ class ChannelActionsService {
     const userIds = memberships[channelId] ?? [];
 
     return MOCK_USERS.filter((user) => userIds.includes(user.id));
+  }
+
+  async fetchUserChannels(): Promise<Channel[]> {
+    return channelRequest<Channel[]>('/channels');
+  }
+
+  async createChannelApi(name: string, type: ChannelType): Promise<Channel> {
+    return channelRequest<Channel>('/channels/create', {
+      name: name.trim().replace(/^#/, ''),
+      type,
+    });
+  }
+
+  async joinChannelApi(name: string, type: ChannelType = 'public'): Promise<Channel> {
+    return channelRequest<Channel>('/channels/join', {
+      name: name.trim().replace(/^#/, ''),
+      type,
+    });
+  }
+
+  async inviteMemberApi(channelId: string, nickname: string): Promise<void> {
+    await channelRequest<unknown>(`/channels/${encodeURIComponent(channelId)}/invite`, {
+      nick: nickname.trim().replace(/^@/, ''),
+    });
   }
 }
 

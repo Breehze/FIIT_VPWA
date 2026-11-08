@@ -13,6 +13,7 @@ export const createChannelValidator = vine.create({
  */
 export const joinChannelValidator = vine.create({
   name: vine.string().trim().minLength(1).maxLength(255),
+  type: vine.enum(['public', 'private'] as const).optional(),
 })
 
 /**

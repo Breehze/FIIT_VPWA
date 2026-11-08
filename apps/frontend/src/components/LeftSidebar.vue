@@ -19,8 +19,11 @@
       @select-channel="onSelectChannel"
       @create-channel="showCreateChannel = true"
     />
-    <CreateChannelDialog v-model="showCreateChannel" @create="handleCreateChannel" />
-
+    <CreateChannelDialog
+      v-model="showCreateChannel"
+      :error-message="createChannelError"
+      @create="handleCreateChannel"
+    />
     <q-separator class="q-mt-auto q-mb-md" />
 
     <q-btn class="logout-button q-mb-sm" no-caps unelevated @click="logout">
@@ -39,7 +42,7 @@ import PendingInvites from './PendingInvites.vue';
 import ChannelList from './ChannelList.vue';
 import CreateChannelDialog from '@/components/CreateChannelDialog.vue';
 import type { Channel, ChannelType } from '@vpwa/shared';
-import { ref } from 'vue';
+import { ref, watch } from 'vue';
 
 const { currentUser, logout } = useAuth();
 const { updateStatus } = useUserActions();
@@ -54,13 +57,27 @@ const {
 } = useChannels();
 
 const showCreateChannel = ref(false);
+const createChannelError = ref('');
+
+watch(showCreateChannel, (isOpen) => {
+  if (isOpen) {
+    createChannelError.value = '';
+  }
+});
 
 function onSelectChannel(channel: Channel) {
   selectChannel(channel.id);
 }
 
-function handleCreateChannel(payload: { name: string; type: ChannelType }) {
-  createChannel(payload.name, payload.type);
+async function handleCreateChannel(payload: { name: string; type: ChannelType }) {
+  createChannelError.value = '';
+
+  try {
+    await createChannel(payload.name, payload.type);
+    showCreateChannel.value = false;
+  } catch (error) {
+    createChannelError.value = error instanceof Error ? error.message : 'Failed to create channel';
+  }
 }
 </script>
 

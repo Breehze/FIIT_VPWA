@@ -55,8 +55,9 @@ export default class ChannelsController {
    */
   async join({ auth, request }: HttpContext) {
     const user = auth.getUserOrFail()
-    const { name } = await request.validateUsing(joinChannelValidator)
-    return this.channelService.joinChannel(user.id, name)
+    const { name, type } = await request.validateUsing(joinChannelValidator)
+
+    return this.channelService.joinChannel(user.id, name, type ?? 'public')
   }
 
   /**
