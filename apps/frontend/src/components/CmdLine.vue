@@ -94,17 +94,19 @@ async function onSubmit(): Promise<void> {
   }
 
   if (inputMsg.startsWith('/')) {
-    commandError.value = await execCommand(inputMsg);
+    typed.value = '';
+    commandError.value = null;
 
-    if (commandError.value) {
-      return;
+    try {
+      commandError.value = await execCommand(inputMsg);
+    } catch (err) {
+      commandError.value = err instanceof Error ? err.message : 'Command failed';
     }
   } else {
     commandError.value = null;
     sendMsg(inputMsg);
+    typed.value = '';
   }
-
-  typed.value = '';
 }
 
 function chooseMember(nick: string) {
