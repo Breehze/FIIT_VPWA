@@ -1,4 +1,5 @@
 import { defineRouter } from '#q-app';
+import { initializeAuth } from '@/composables/useAuth';
 import {
   createMemoryHistory,
   createRouter,
@@ -32,6 +33,18 @@ export default defineRouter((/* { store, ssrContext } */) => {
     // quasar.conf.js -> build -> vueRouterMode
     // quasar.conf.js -> build -> publicPath
     history: createHistory(import.meta.env.QUASAR_VUE_ROUTER_BASE),
+  });
+
+  Router.beforeEach(async (to) => {
+    const user = await initializeAuth();
+
+    if (to.meta.requiresAuth && !user) {
+      return '/';
+    }
+
+    if (to.path === '/' && user) {
+      return '/chat';
+    }
   });
 
   return Router;

@@ -73,6 +73,7 @@
           :rules="[
             (val) => !!val || 'Password is required!',
             (val) => val.length >= 8 || 'Password must contain at least 8 characters!',
+            (val) => val.length <= 32 || 'Password must contain at most 32 characters!',
           ]"
           hide-bottom-space
         >
@@ -137,6 +138,7 @@ function submitForm(): void {
   emits('submitRegister', {
     nickname: nickname.value,
     password: pw.value,
+    passwordConfirmation: pwRepeat.value,
     name: firstName.value,
     lastName: lastName.value,
     email: email.value,

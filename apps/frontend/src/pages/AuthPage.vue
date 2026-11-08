@@ -12,6 +12,9 @@
         </div>
         <q-card class="auth-form q-pa-lg q-mb-lg" flat>
           <LoginForm @submit-login="loginHandler" />
+          <p v-if="errorMessage" class="text-negative text-center q-mt-md" role="alert">
+            {{ errorMessage }}
+          </p>
           <p class="auth-switch text-center q-mt-md q-mb-none">
             New here?
             <span class="auth-switch-link" @click="isLoginForm = false">Create an account</span>
@@ -25,6 +28,9 @@
         </div>
         <q-card class="auth-form q-pa-lg q-mb-lg" flat>
           <RegisterForm @submit-register="registerHandler" />
+          <p v-if="errorMessage" class="text-negative text-center q-mt-md" role="alert">
+            {{ errorMessage }}
+          </p>
           <p class="auth-switch text-center q-mt-md q-mb-none">
             Already have an account?
             <span class="auth-switch-link" @click="isLoginForm = true">Sign in</span>
@@ -43,27 +49,39 @@
 <script setup lang="ts">
 import LoginForm from '@/components/LoginForm.vue';
 import RegisterForm from '@/components/RegisterForm.vue';
-import { ref } from 'vue';
+import { ref, watch } from 'vue';
 import { useAuth } from '@/composables/useAuth';
+import type { LoginDto, RegisterDto } from '@/services/auth.service';
 
-const { login, register, currentUser } = useAuth();
+const { login, register } = useAuth();
 
 const isLoginForm = ref(true);
+const errorMessage = ref<string | null>(null);
 
-async function loginHandler(loginInfo: { email: string; password: string }): Promise<void> {
-  await login(loginInfo);
-  console.log(currentUser.value);
+watch(isLoginForm, () => {
+  errorMessage.value = null;
+});
+
+async function loginHandler(loginInfo: LoginDto): Promise<void> {
+  errorMessage.value = null;
+
+  try {
+    await login(loginInfo);
+  } catch (error) {
+    errorMessage.value = error instanceof Error ? error.message : 'Login failed. Please try again.';
+  }
 }
 
-async function registerHandler(registerInfo: {
-  nickname: string;
-  password: string;
-  name: string;
-  lastName: string;
-  email: string;
-}): Promise<void> {
-  await register(registerInfo);
-  isLoginForm.value = true;
+async function registerHandler(registerInfo: RegisterDto): Promise<void> {
+  errorMessage.value = null;
+
+  try {
+    await register(registerInfo);
+    isLoginForm.value = true;
+  } catch (error) {
+    errorMessage.value =
+      error instanceof Error ? error.message : 'Registration failed. Please try again.';
+  }
 }
 </script>
 

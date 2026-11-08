@@ -4,13 +4,12 @@ const routes: RouteRecordRaw[] = [
   {
     path: '/',
     component: () => import('@/layouts/AuthLayout.vue'),
-    children: [
-      { path: '', component: () => import('@/pages/AuthPage.vue') },
-    ],
+    children: [{ path: '', component: () => import('@/pages/AuthPage.vue') }],
   },
   {
     path: '/chat',
     component: () => import('@/layouts/MainLayout.vue'),
+    meta: { requiresAuth: true },
     children: [{ path: '', component: () => import('@/pages/MainPage.vue') }],
   },
   {
