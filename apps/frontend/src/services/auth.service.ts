@@ -10,13 +10,32 @@ export interface LoginDto {
 
 export interface RegisterDto {
   nickname: string;
-  password?: string;
+  password: string;
+  passwordConfirmation: string;
   name?: string;
   lastName?: string;
-  email?: string;
+  email: string;
 }
 
-const USE_MOCK = true;
+const USE_MOCK = false;
+const API_URL = 'http://localhost:3333';
+
+interface UserApiResponse {
+  data: {
+    user: User;
+  };
+}
+
+async function readResponse<T>(response: Response): Promise<T> {
+  const body = await response.json().catch(() => null);
+
+  if (!response.ok) {
+    const error = body as { errors?: { message?: string }[] } | null;
+    throw new Error(error?.errors?.[0]?.message ?? `Request failed (${response.status})`);
+  }
+
+  return body as T;
+}
 
 class AuthService {
   async login(credentials: LoginDto): Promise<User> {
@@ -48,7 +67,18 @@ class AuthService {
       return user;
     }
 
-    throw new Error('Backend server is not connected yet.');
+    const response = await fetch(`${API_URL}/login`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+      },
+      body: JSON.stringify(credentials),
+    });
+
+    const result = await readResponse<UserApiResponse>(response);
+    return result.data.user;
   }
 
   async register(data: RegisterDto): Promise<User> {
@@ -72,17 +102,67 @@ class AuthService {
       return newUser;
     }
 
-    throw new Error('Backend server is not connected yet.');
+    const response = await fetch(`${API_URL}/register`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+      },
+      body: JSON.stringify({
+        nick: data.nickname,
+        email: data.email,
+        password: data.password,
+        passwordConfirmation: data.passwordConfirmation,
+        name: data.name ?? null,
+        lastName: data.lastName ?? null,
+      }),
+    });
+
+    const result = await readResponse<UserApiResponse>(response);
+    return result.data.user;
   }
 
-  logout(): void {
-    localStorage.removeItem('auth_token');
-    localStorage.removeItem('auth_user');
+  async logout(): Promise<void> {
+    if (USE_MOCK) {
+      localStorage.removeItem('auth_token');
+      localStorage.removeItem('auth_user');
+      return;
+    }
+
+    const response = await fetch(`${API_URL}/logout`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        Accept: 'application/json',
+      },
+    });
+
+    await readResponse<{ message: string }>(response);
   }
 
   getUserFromStorage(): User | null {
     const raw = localStorage.getItem('auth_user');
     return raw ? JSON.parse(raw) : null;
+  }
+
+  async getCurrentUser(): Promise<User | null> {
+    if (USE_MOCK) {
+      return this.getUserFromStorage();
+    }
+
+    const response = await fetch(`${API_URL}/user`, {
+      credentials: 'include',
+      headers: {
+        Accept: 'application/json',
+      },
+    });
+
+    if (response.status === 401) {
+      return null;
+    }
+
+    return await readResponse<User>(response);
   }
 }
 
