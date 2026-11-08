@@ -47,6 +47,7 @@ import type { InvitedChannel } from '@/services/channelActions.service';
 
 defineProps<{
   invites: InvitedChannel[];
+  processingInviteId?: string | null;
 }>();
 
 const emit = defineEmits<{

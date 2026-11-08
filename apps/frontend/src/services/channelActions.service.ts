@@ -352,6 +352,20 @@ class ChannelActionsService {
       nick: nickname.trim().replace(/^@/, ''),
     });
   }
+
+  async fetchPendingInvitesApi(): Promise<InvitedChannel[]> {
+    return channelRequest<InvitedChannel[]>('/invites');
+  }
+
+  async processInviteApi(
+    inviteId: string,
+    action: 'accept' | 'reject',
+  ): Promise<void> {
+    await channelRequest<unknown>('/invites', {
+      inviteId,
+      action,
+    });
+  }
 }
 
 export const channelActionsService = new ChannelActionsService();

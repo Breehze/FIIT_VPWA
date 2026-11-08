@@ -33,7 +33,9 @@ export function useChat() {
         return;
       }
 
-      refreshChannels();
+      void refreshChannels().catch((error) => {
+        console.error('Failed to refresh channels:', error);
+      });
 
       for (const msg of missedMessages.splice(0)) {
         addUnreadMessage(msg.channelId, activeChannel.value?.id);

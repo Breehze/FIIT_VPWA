@@ -5,7 +5,7 @@ import { useAuth } from '@/composables/useAuth';
 import { useNotifications } from '@/composables/useNotifications';
 
 const channels = ref<Channel[]>([]);
-const invitedChannels = ref<InvitedChannel[]>(channelActionsService.getInvitedChannels());
+const invitedChannels = ref<InvitedChannel[]>([]);
 const activeChannelId = ref<string | null>(null);
 
 export function useChannels() {
@@ -17,6 +17,10 @@ export function useChannels() {
     () => {
       void refreshChannels().catch((error) => {
         console.error('Failed to load channels:', error);
+      });
+
+      void refreshInvites().catch((error) => {
+        console.error('Failed to load invitations:', error);
       });
     },
     { immediate: true },
@@ -77,6 +81,23 @@ export function useChannels() {
 
       activeChannelId.value = channels.value[0]?.id ?? null;
     }
+  }
+
+  async function refreshInvites(): Promise<void> {
+    const userId = currentUser.value?.id;
+
+    if (!userId) {
+      invitedChannels.value = [];
+      return;
+    }
+
+    const invites = await channelActionsService.fetchPendingInvitesApi();
+
+    if (currentUser.value?.id !== userId) {
+      return;
+    }
+
+    invitedChannels.value = invites;
   }
 
   function refreshChannelsSafely(): void {
@@ -144,18 +165,34 @@ export function useChannels() {
     await channelActionsService.inviteMemberApi(channelId, nickname);
   }
 
-  function acceptInvite(inviteId: string) {
-    const joinedChannel = channelActionsService.acceptInvite(inviteId, currentUser.value?.id);
-    invitedChannels.value = channelActionsService.getInvitedChannels();
-    refreshChannelsSafely();
-    if (joinedChannel) {
-      activeChannelId.value = joinedChannel.id;
+  async function acceptInvite(inviteId: string): Promise<void> {
+    if (!currentUser.value) {
+      throw new Error('You must be logged in to accept an invitation');
+    }
+
+    const pendingInvite = invitedChannels.value.find((item) => item.invite.id === inviteId);
+
+    await channelActionsService.processInviteApi(inviteId, 'accept');
+
+    await refreshChannels();
+    await refreshInvites();
+
+    if (
+      pendingInvite &&
+      channels.value.some((channel) => channel.id === pendingInvite.channel.id)
+    ) {
+      activeChannelId.value = pendingInvite.channel.id;
     }
   }
 
-  function rejectInvite(inviteId: string) {
-    channelActionsService.rejectInvite(inviteId);
-    invitedChannels.value = channelActionsService.getInvitedChannels();
+  async function rejectInvite(inviteId: string): Promise<void> {
+    if (!currentUser.value) {
+      throw new Error('You must be logged in to reject an invitation');
+    }
+
+    await channelActionsService.processInviteApi(inviteId, 'reject');
+
+    await refreshInvites();
   }
 
   return {

@@ -8,9 +8,14 @@
     <PendingInvites
       class="q-mt-sm"
       :invites="invitedChannels"
-      @accept="acceptInvite"
-      @reject="rejectInvite"
+      :processing-invite-id="processingInviteId"
+      @accept="handleAcceptInvite"
+      @reject="handleRejectInvite"
     />
+
+    <div v-if="inviteError" class="text-negative q-mx-md q-mt-sm" role="alert">
+      {{ inviteError }}
+    </div>
     <ChannelList
       class="col scroll q-mt-sm"
       :channels="channels"
@@ -58,6 +63,35 @@ const {
 
 const showCreateChannel = ref(false);
 const createChannelError = ref('');
+const inviteError = ref<string | null>(null);
+const processingInviteId = ref<string | null>(null);
+
+async function processInviteResponse(inviteId: string, action: 'accept' | 'reject'): Promise<void> {
+  if (processingInviteId.value) return;
+
+  inviteError.value = null;
+  processingInviteId.value = inviteId;
+
+  try {
+    if (action === 'accept') {
+      await acceptInvite(inviteId);
+    } else {
+      await rejectInvite(inviteId);
+    }
+  } catch (error) {
+    inviteError.value = error instanceof Error ? error.message : 'Failed to process invitation';
+  } finally {
+    processingInviteId.value = null;
+  }
+}
+
+async function handleAcceptInvite(inviteId: string): Promise<void> {
+  await processInviteResponse(inviteId, 'accept');
+}
+
+async function handleRejectInvite(inviteId: string): Promise<void> {
+  await processInviteResponse(inviteId, 'reject');
+}
 
 watch(showCreateChannel, (isOpen) => {
   if (isOpen) {
