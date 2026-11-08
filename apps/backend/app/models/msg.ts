@@ -21,4 +21,15 @@ export default class Msg extends MsgSchema {
     foreignKey: 'msgId',
   })
   declare mentions: HasMany<typeof MsgMention>
+
+  static async listForChannel(channelId: string, beforeId?: number, limit = 20): Promise<Msg[]> {
+    const query = this.query().where('channelId', channelId)
+
+    if (beforeId !== undefined) {
+      query.where('id', '<', beforeId)
+    }
+
+    const messages = await query.orderBy('id', 'desc').limit(limit)
+    return messages.reverse()
+  }
 }

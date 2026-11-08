@@ -12,6 +12,9 @@ import router from '@adonisjs/core/services/router'
 import { controllers } from '#generated/controllers'
 import db from '@adonisjs/lucid/services/db'
 
+const UsersController = () => import('#controllers/users_controller')
+const ChannelsController = () => import('#controllers/channels_controller')
+
 router.get('/', async () => {
   const result = await db.rawQuery('SELECT 1 AS connected')
   console.log(result.rows)
@@ -24,8 +27,19 @@ router.post('/login', [controllers.AccessTokens, 'store'])
 router
   .group(() => {
     router.post('/logout', [controllers.AccessTokens, 'destroy'])
-    router.get('/user', [controllers.Users, 'show'])
-    router.post('/user/set_status', [controllers.Users, 'setStatus'])
-    router.post('/user/set_mention_only_notif', [controllers.Users, 'setMentionOnlyNotif'])
+    router.get('/user', [UsersController, 'show'])
+    router.post('/user/set_status', [UsersController, 'setStatus'])
+    router.post('/user/set_mention_only_notif', [UsersController, 'setMentionOnlyNotif'])
+
+    router.get('/channels', [ChannelsController, 'index'])
+    router.get('/channels/:channelId/members', [ChannelsController, 'members'])
+    router.get('/channels/:channelId/msgs', [ChannelsController, 'messages'])
+    router.post('/channels/create', [ChannelsController, 'create'])
+    router.post('/channels/join', [ChannelsController, 'join'])
+    router.post('/channels/:channelId/leave', [ChannelsController, 'leave'])
+    router.post('/channels/:channelId/revoke', [ChannelsController, 'revoke'])
+    router.post('/channels/:channelId/invite', [ChannelsController, 'invite'])
+    router.post('/channels/:channelId/kick', [ChannelsController, 'kick'])
+    router.delete('/channels/:channelId', [ChannelsController, 'destroy'])
   })
   .use(middleware.auth({ guards: ['web'] }))
