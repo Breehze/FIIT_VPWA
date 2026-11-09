@@ -36,9 +36,9 @@ test.group('Invites endpoints (/invites)', (group) => {
 
     const response = await client.get('/invites').withGuard('web').loginAs(invitee)
     response.assertStatus(200)
-    const invites = response.body() as Array<{ id: string; channel: { id: string } }>
+    const invites = response.body() as Array<{ invite: { id: string }; channel: { id: string } }>
     assert.lengthOf(invites, 1)
-    assert.equal(invites[0].id, pending.id)
+    assert.equal(invites[0].invite.id, pending.id)
     assert.equal(invites[0].channel.id, channel.id)
   })
 
