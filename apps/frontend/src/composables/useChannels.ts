@@ -4,15 +4,27 @@ import { channelActionsService, type InvitedChannel } from '@/services/channelAc
 import { useAuth } from '@/composables/useAuth';
 import { useNotifications } from '@/composables/useNotifications';
 
-const channels = ref<Channel[]>(channelActionsService.getUserChannels());
-const invitedChannels = ref<InvitedChannel[]>(channelActionsService.getInvitedChannels());
-const activeChannelId = ref<string | null>(channels.value[0]?.id || null);
+const channels = ref<Channel[]>([]);
+const invitedChannels = ref<InvitedChannel[]>([]);
+const activeChannelId = ref<string | null>(null);
 
 export function useChannels() {
   const { currentUser } = useAuth();
   const { removeChannelNotifications } = useNotifications();
 
-  watch(() => currentUser.value?.id, refreshChannels, { immediate: true });
+  watch(
+    () => currentUser.value?.id,
+    () => {
+      void refreshChannels().catch((error) => {
+        console.error('Failed to load channels:', error);
+      });
+
+      void refreshInvites().catch((error) => {
+        console.error('Failed to load invitations:', error);
+      });
+    },
+    { immediate: true },
+  );
 
   const activeChannel = computed(() => {
     return channels.value.find((c) => c.id === activeChannelId.value) || null;
@@ -45,26 +57,86 @@ export function useChannels() {
     activeChannelId.value = channelId;
   }
 
-  function refreshChannels() {
-    channels.value = channelActionsService.getUserChannels(currentUser.value?.id);
-    if (activeChannelId.value && !channels.value.some((c) => c.id === activeChannelId.value)) {
-      removeChannelNotifications(activeChannelId.value);
+  async function refreshChannels(): Promise<void> {
+    const userId = currentUser.value?.id;
+
+    if (!userId) {
+      channels.value = [];
+      activeChannelId.value = null;
+      return;
+    }
+
+    const updatedChannels = await channelActionsService.fetchUserChannels();
+
+    if (currentUser.value?.id !== userId) {
+      return;
+    }
+
+    channels.value = updatedChannels;
+
+    if (!channels.value.some((c) => c.id === activeChannelId.value)) {
+      if (activeChannelId.value) {
+        removeChannelNotifications(activeChannelId.value);
+      }
+
       activeChannelId.value = channels.value[0]?.id ?? null;
     }
   }
 
-  function createChannel(name: string, type: ChannelType) {
-    if (!currentUser.value) return;
-    const newChannel = channelActionsService.createChannel(name, type, currentUser.value.id);
-    refreshChannels();
+  async function refreshInvites(): Promise<void> {
+    const userId = currentUser.value?.id;
+
+    if (!userId) {
+      invitedChannels.value = [];
+      return;
+    }
+
+    const invites = await channelActionsService.fetchPendingInvitesApi();
+
+    if (currentUser.value?.id !== userId) {
+      return;
+    }
+
+    invitedChannels.value = invites;
+  }
+
+  function refreshChannelsSafely(): void {
+    void refreshChannels().catch((error) => {
+      console.error('Failed to refresh channels:', error);
+    });
+  }
+
+  async function createChannel(name: string, type: ChannelType): Promise<Channel> {
+    if (!currentUser.value) {
+      throw new Error('You must be logged in to create a channel');
+    }
+
+    const newChannel = await channelActionsService.createChannelApi(name, type);
+
+    await refreshChannels();
     activeChannelId.value = newChannel.id;
+
     return newChannel;
   }
 
-  function joinChannel(name: string, type: ChannelType = 'public') {
-    const joined = channelActionsService.joinChannel(name, type, currentUser.value?.id);
-    refreshChannels();
-    selectChannel(joined.id);
+  async function joinChannel(name: string, type: ChannelType = 'public'): Promise<Channel> {
+    if (!currentUser.value) {
+      throw new Error('You must be logged in to join a channel');
+    }
+
+    let joined: Channel;
+    try {
+      joined = await channelActionsService.joinChannelApi(name);
+    } catch (error) {
+      if (!(error instanceof Error && 'status' in error && error.status === 404)) {
+        throw error;
+      }
+      joined = await channelActionsService.createChannelApi(name, type);
+    }
+
+    await refreshChannels();
+    activeChannelId.value = joined.id;
+
     return joined;
   }
 
@@ -80,31 +152,55 @@ export function useChannels() {
 
   function kickMember(channelId: string, nickname: string) {
     channelActionsService.kickMember(channelId, nickname, currentUser.value?.id);
-    refreshChannels();
+    refreshChannelsSafely();
   }
 
   function revokeMember(channelId: string, nickname: string) {
     channelActionsService.revokeMember(channelId, nickname, currentUser.value?.id);
-    refreshChannels();
+    refreshChannelsSafely();
   }
 
   function afterChannelRemoved(channelId: string) {
-    refreshChannels();
+    refreshChannelsSafely();
     removeChannelNotifications(channelId);
   }
 
-  function acceptInvite(inviteId: string) {
-    const joinedChannel = channelActionsService.acceptInvite(inviteId, currentUser.value?.id);
-    invitedChannels.value = channelActionsService.getInvitedChannels();
-    refreshChannels();
-    if (joinedChannel) {
-      activeChannelId.value = joinedChannel.id;
+  async function inviteMember(channelId: string, nickname: string): Promise<void> {
+    if (!currentUser.value) {
+      throw new Error('You must be logged in to invite users');
+    }
+
+    await channelActionsService.inviteMemberApi(channelId, nickname);
+  }
+
+  async function acceptInvite(inviteId: string): Promise<void> {
+    if (!currentUser.value) {
+      throw new Error('You must be logged in to accept an invitation');
+    }
+
+    const pendingInvite = invitedChannels.value.find((item) => item.invite.id === inviteId);
+
+    await channelActionsService.processInviteApi(inviteId, 'accept');
+
+    await refreshChannels();
+    await refreshInvites();
+
+    if (
+      pendingInvite &&
+      channels.value.some((channel) => channel.id === pendingInvite.channel.id)
+    ) {
+      activeChannelId.value = pendingInvite.channel.id;
     }
   }
 
-  function rejectInvite(inviteId: string) {
-    channelActionsService.rejectInvite(inviteId);
-    invitedChannels.value = channelActionsService.getInvitedChannels();
+  async function rejectInvite(inviteId: string): Promise<void> {
+    if (!currentUser.value) {
+      throw new Error('You must be logged in to reject an invitation');
+    }
+
+    await channelActionsService.processInviteApi(inviteId, 'reject');
+
+    await refreshInvites();
   }
 
   return {
@@ -124,5 +220,6 @@ export function useChannels() {
     revokeMember,
     acceptInvite,
     rejectInvite,
+    inviteMember,
   };
 }

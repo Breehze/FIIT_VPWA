@@ -8,9 +8,14 @@
     <PendingInvites
       class="q-mt-sm"
       :invites="invitedChannels"
-      @accept="acceptInvite"
-      @reject="rejectInvite"
+      :processing-invite-id="processingInviteId"
+      @accept="handleAcceptInvite"
+      @reject="handleRejectInvite"
     />
+
+    <div v-if="inviteError" class="text-negative q-mx-md q-mt-sm" role="alert">
+      {{ inviteError }}
+    </div>
     <ChannelList
       class="col scroll q-mt-sm"
       :channels="channels"
@@ -19,8 +24,11 @@
       @select-channel="onSelectChannel"
       @create-channel="showCreateChannel = true"
     />
-    <CreateChannelDialog v-model="showCreateChannel" @create="handleCreateChannel" />
-
+    <CreateChannelDialog
+      v-model="showCreateChannel"
+      :error-message="createChannelError"
+      @create="handleCreateChannel"
+    />
     <q-separator class="q-mt-auto q-mb-md" />
 
     <q-btn class="logout-button q-mb-sm" no-caps unelevated @click="logout">
@@ -39,7 +47,7 @@ import PendingInvites from './PendingInvites.vue';
 import ChannelList from './ChannelList.vue';
 import CreateChannelDialog from '@/components/CreateChannelDialog.vue';
 import type { Channel, ChannelType } from '@vpwa/shared';
-import { ref } from 'vue';
+import { ref, watch } from 'vue';
 
 const { currentUser, logout } = useAuth();
 const { updateStatus } = useUserActions();
@@ -54,13 +62,56 @@ const {
 } = useChannels();
 
 const showCreateChannel = ref(false);
+const createChannelError = ref('');
+const inviteError = ref<string | null>(null);
+const processingInviteId = ref<string | null>(null);
+
+async function processInviteResponse(inviteId: string, action: 'accept' | 'reject'): Promise<void> {
+  if (processingInviteId.value) return;
+
+  inviteError.value = null;
+  processingInviteId.value = inviteId;
+
+  try {
+    if (action === 'accept') {
+      await acceptInvite(inviteId);
+    } else {
+      await rejectInvite(inviteId);
+    }
+  } catch (error) {
+    inviteError.value = error instanceof Error ? error.message : 'Failed to process invitation';
+  } finally {
+    processingInviteId.value = null;
+  }
+}
+
+async function handleAcceptInvite(inviteId: string): Promise<void> {
+  await processInviteResponse(inviteId, 'accept');
+}
+
+async function handleRejectInvite(inviteId: string): Promise<void> {
+  await processInviteResponse(inviteId, 'reject');
+}
+
+watch(showCreateChannel, (isOpen) => {
+  if (isOpen) {
+    createChannelError.value = '';
+  }
+});
 
 function onSelectChannel(channel: Channel) {
   selectChannel(channel.id);
 }
 
-function handleCreateChannel(payload: { name: string; type: ChannelType }) {
-  createChannel(payload.name, payload.type);
+async function handleCreateChannel(payload: { name: string; type: ChannelType }) {
+  createChannelError.value = '';
+
+  try {
+    await createChannel(payload.name, payload.type);
+    showCreateChannel.value = false;
+  } catch (error) {
+    createChannelError.value = error instanceof Error ? error.message : 'Failed to create channel';
+  }
 }
 </script>
 

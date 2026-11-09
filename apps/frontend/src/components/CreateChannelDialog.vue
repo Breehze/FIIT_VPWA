@@ -41,6 +41,12 @@
         </div>
       </q-card-section>
 
+      <q-card-section v-if="errorMessage" class="q-pt-none">
+        <div class="text-negative text-center" role="alert">
+          {{ errorMessage }}
+        </div>
+      </q-card-section>
+
       <q-card-actions class="row justify-around q-mb-md q-mx-sm">
         <q-btn
           class="cancel-button col"
@@ -58,7 +64,7 @@
           padding="12px 16px"
           no-caps
           label="Create"
-          :disable="!name"
+          :disable="!name.trim()"
           @click="handleCreate"
         />
       </q-card-actions>
@@ -67,11 +73,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, watch } from 'vue';
 import type { ChannelType } from '@vpwa/shared';
 
-defineProps<{
+const props = defineProps<{
   modelValue: boolean;
+  errorMessage?: string;
 }>();
 
 const emit = defineEmits<{
@@ -81,17 +88,26 @@ const emit = defineEmits<{
 
 const name = ref('');
 const channelType = ref<ChannelType>('public');
-function handleCreate() {
-  if (!name.value) return;
+
+watch(
+  () => props.modelValue,
+  (isOpen) => {
+    if (!isOpen) {
+      name.value = '';
+      channelType.value = 'public';
+    }
+  },
+);
+
+function handleCreate(): void {
+  const cleanName = name.value.trim();
+
+  if (!cleanName) return;
 
   emit('create', {
-    name: name.value,
+    name: cleanName,
     type: channelType.value,
   });
-
-  name.value = '';
-  channelType.value = 'public';
-  emit('update:modelValue', false);
 }
 </script>
 

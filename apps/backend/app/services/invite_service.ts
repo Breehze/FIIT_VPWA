@@ -5,8 +5,19 @@ import Invite from '#models/invite'
 import UserChannel from '#models/user_channel'
 
 export default class InviteService {
-  async listPending(user: User): Promise<Invite[]> {
-    return Invite.listPendingForUser(user.id)
+  async listPending(user: User) {
+    const invites = await Invite.listPendingForUser(user.id)
+
+    return Promise.all(
+      invites.map(async (invite) => {
+        await invite.load('channel')
+
+        return {
+          invite: invite.serialize(),
+          channel: invite.channel.serialize(),
+        }
+      })
+    )
   }
 
   async process(userId: string, inviteId: string, action: 'accept' | 'reject'): Promise<Invite> {

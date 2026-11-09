@@ -86,20 +86,27 @@ const filteredMembers = computed(() => {
   });
 });
 
-function onSubmit() {
+async function onSubmit(): Promise<void> {
   const inputMsg = typed.value.trim();
+
   if (!inputMsg) {
     return;
   }
+
   if (inputMsg.startsWith('/')) {
-    commandError.value = execCommand(inputMsg);
-    if (commandError.value) return;
+    typed.value = '';
+    commandError.value = null;
+
+    try {
+      commandError.value = await execCommand(inputMsg);
+    } catch (err) {
+      commandError.value = err instanceof Error ? err.message : 'Command failed';
+    }
   } else {
     commandError.value = null;
     sendMsg(inputMsg);
+    typed.value = '';
   }
-
-  typed.value = '';
 }
 
 function chooseMember(nick: string) {
