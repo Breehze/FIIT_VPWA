@@ -1,7 +1,10 @@
 import { randomUUID } from 'node:crypto'
+import { mock } from 'node:test'
 import { DateTime } from 'luxon'
 import { test } from '@japa/runner'
 import testUtils from '@adonisjs/core/services/test_utils'
+import app from '@adonisjs/core/services/app'
+import socket from '@rlanz/socket/services/main'
 import Channel from '#models/channel'
 import User from '#models/user'
 import UserChannel from '#models/user_channel'
@@ -249,12 +252,27 @@ test.group('Channels endpoints (/channels)', (group) => {
       banned: false,
     })
 
-    const revokeRes = await client
-      .post(`/channels/${channelId}/revoke`)
-      .withGuard('web')
-      .loginAs(owner)
-      .json({ nick: member.nick })
-    revokeRes.assertStatus(200)
+    const presence = await app.container.make('socket.presence')
+    const raw = { id: randomUUID(), data: {}, connection: {} as never }
+    presence.join(`channels/${channelId}`, raw, { id: member.id })
+    const disconnect = mock.fn()
+    const getSocket = mock.method(socket, 'getSocket', () => ({ disconnect }) as never)
+    const broadcast = socket.fake()
+
+    try {
+      const revokeRes = await client
+        .post(`/channels/${channelId}/revoke`)
+        .withGuard('web')
+        .loginAs(owner)
+        .json({ nick: member.nick })
+      revokeRes.assertStatus(200)
+      broadcast.assertEmittedTo(`user/${member.id}`, 'channels:changed', { data: { channelId } })
+      assert.equal(disconnect.mock.callCount(), 1)
+    } finally {
+      broadcast.restore()
+      getSocket.mock.restore()
+      presence.leave(`channels/${channelId}`, raw)
+    }
 
     const membersRes = await client
       .get(`/channels/${channelId}/members`)

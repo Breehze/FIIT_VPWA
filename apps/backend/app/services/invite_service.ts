@@ -1,5 +1,6 @@
 import { Exception } from '@adonisjs/core/exceptions'
 import db from '@adonisjs/lucid/services/db'
+import socket from '@rlanz/socket/services/main'
 import type User from '#models/user'
 import Invite from '#models/invite'
 import UserChannel from '#models/user_channel'
@@ -21,7 +22,7 @@ export default class InviteService {
   }
 
   async process(userId: string, inviteId: string, action: 'accept' | 'reject'): Promise<Invite> {
-    return db.transaction(async (trx) => {
+    const result = await db.transaction(async (trx) => {
       const invite = await Invite.findPendingForInvitee(inviteId, userId, trx)
       if (!invite) {
         throw new Exception('Pending invite not found', { status: 404 })
@@ -42,5 +43,11 @@ export default class InviteService {
       await invite.markStatus(action === 'accept' ? 'accepted' : 'rejected', trx)
       return invite
     })
+
+    if (action === 'accept') {
+      socket.to(`user/${userId}`).emit('channels:changed', { channelId: result.channelId })
+    }
+
+    return result
   }
 }

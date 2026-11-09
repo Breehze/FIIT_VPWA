@@ -52,6 +52,10 @@ export default defineConfig({
     () => import('@adonisjs/lucid/database_provider'),
     () => import('@adonisjs/cors/cors_provider'),
     () => import('@adonisjs/auth/auth_provider'),
+    {
+      file: () => import('@rlanz/socket/provider'),
+      environment: ['web', 'test'],
+    },
     () => import('#providers/api_provider'),
   ],
 
@@ -111,6 +115,7 @@ export default defineConfig({
         transformers: { enabled: true },
       }),
       generateRegistry(),
+      () => import('@rlanz/socket/assembler_hook'),
     ],
   },
 })
