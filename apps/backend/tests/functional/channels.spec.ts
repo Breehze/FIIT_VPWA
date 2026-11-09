@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto'
 import { DateTime } from 'luxon'
 import { test } from '@japa/runner'
 import testUtils from '@adonisjs/core/services/test_utils'
+import Channel from '#models/channel'
 import User from '#models/user'
 import UserChannel from '#models/user_channel'
 import Msg from '#models/msg'
@@ -60,6 +61,7 @@ test.group('Channels endpoints (/channels)', (group) => {
       .loginAs(joiner)
       .json({ name: 'non-existent-channel' })
     missingRes.assertStatus(404)
+    assert.isNull(await Channel.findByName('non-existent-channel'))
 
     await client
       .post('/channels/create')

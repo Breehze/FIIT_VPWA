@@ -124,7 +124,15 @@ export function useChannels() {
       throw new Error('You must be logged in to join a channel');
     }
 
-    const joined = await channelActionsService.joinChannelApi(name, type);
+    let joined: Channel;
+    try {
+      joined = await channelActionsService.joinChannelApi(name);
+    } catch (error) {
+      if (!(error instanceof Error && 'status' in error && error.status === 404)) {
+        throw error;
+      }
+      joined = await channelActionsService.createChannelApi(name, type);
+    }
 
     await refreshChannels();
     activeChannelId.value = joined.id;

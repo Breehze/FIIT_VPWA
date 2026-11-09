@@ -29,10 +29,11 @@ async function channelRequest<T>(path: string, body?: object): Promise<T> {
       errors?: { message?: string }[];
     } | null;
 
-    throw new Error(
-      error?.errors?.[0]?.message ??
-      error?.message ??
-      `Request failed (${response.status})`,
+    throw Object.assign(
+      new Error(
+        error?.errors?.[0]?.message ?? error?.message ?? `Request failed (${response.status})`,
+      ),
+      { status: response.status },
     );
   }
 
@@ -47,7 +48,6 @@ export interface KickVoteProgress {
   target: User;
   voteCount: number;
 }
-
 
 let storedChannels: Channel[] = structuredClone(DEFAULT_CHANNELS);
 let storedMemberships: Record<string, string[]> = structuredClone(DEFAULT_CHANNEL_MEMBERS);
@@ -340,10 +340,9 @@ class ChannelActionsService {
     });
   }
 
-  async joinChannelApi(name: string, type: ChannelType = 'public'): Promise<Channel> {
+  async joinChannelApi(name: string): Promise<Channel> {
     return channelRequest<Channel>('/channels/join', {
       name: name.trim().replace(/^#/, ''),
-      type,
     });
   }
 
@@ -357,10 +356,7 @@ class ChannelActionsService {
     return channelRequest<InvitedChannel[]>('/invites');
   }
 
-  async processInviteApi(
-    inviteId: string,
-    action: 'accept' | 'reject',
-  ): Promise<void> {
+  async processInviteApi(inviteId: string, action: 'accept' | 'reject'): Promise<void> {
     await channelRequest<unknown>('/invites', {
       inviteId,
       action,
