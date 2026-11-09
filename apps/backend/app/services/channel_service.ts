@@ -63,20 +63,16 @@ export default class ChannelService {
   /**
    * POST /channels/join
    */
-  async joinChannel(
-    userId: string,
-    rawName: string,
-    type: ChannelType = 'public'
-  ): Promise<Channel> {
+  async joinChannel(userId: string, rawName: string): Promise<Channel> {
     const channel = await Channel.findByName(rawName)
 
     if (!channel) {
-      return this.createChannel(userId, rawName, type)
+      throw new Exception('Channel not found', { status: 404 })
     }
 
     if (channel.isExpired()) {
       await channel.deleteWithRelations()
-      return this.createChannel(userId, rawName, type)
+      throw new Exception('Channel not found', { status: 404 })
     }
 
     const membership = await UserChannel.findForUser(channel.id, userId)
