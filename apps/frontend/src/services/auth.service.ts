@@ -1,5 +1,6 @@
 import type { User } from '@vpwa/shared';
 import { MOCK_USERS } from '@/mocks';
+import { API_URL } from '@/config/api';
 
 const delay = (ms = 400) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -18,7 +19,6 @@ export interface RegisterDto {
 }
 
 const USE_MOCK = false;
-const API_URL = 'http://localhost:3333';
 
 interface UserApiResponse {
   data: {

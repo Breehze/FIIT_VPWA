@@ -7,8 +7,7 @@ import {
   type InvitedChannel,
 } from '@/mocks';
 import { authService } from './auth.service';
-
-const API_URL = 'http://localhost:3333';
+import { API_URL } from '@/config/api';
 
 async function channelRequest<T>(path: string, body?: object): Promise<T> {
   const response = await fetch(`${API_URL}${path}`, {
