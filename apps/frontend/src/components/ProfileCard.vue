@@ -39,7 +39,6 @@
 
               <q-item-section>
                 <q-item-label>Online</q-item-label>
-                <q-item-label caption> Messages and notifications enabled. </q-item-label>
               </q-item-section>
             </q-item>
 
@@ -55,7 +54,6 @@
 
               <q-item-section>
                 <q-item-label>Do Not Disturb</q-item-label>
-                <q-item-label caption> Messages enabled · notifications paused. </q-item-label>
               </q-item-section>
             </q-item>
 
@@ -71,51 +69,18 @@
 
               <q-item-section>
                 <q-item-label>Offline</q-item-label>
-                <q-item-label caption> Messages paused until you come back online. </q-item-label>
               </q-item-section>
             </q-item>
           </q-list>
         </q-btn-dropdown>
       </div>
-      <div
-        class="notification-setting q--avoid-card-border row items-start no-wrap q-mt-sm q-pa-sm"
-      >
-        <div class="notification-icon flex flex-center q-pa-xs q-mr-sm">
-          <q-icon name="notifications_none" size="16px" />
-        </div>
-
-        <div class="notification-text col">
-          <div class="text-weight-medium">Mentions only</div>
-          <div class="notification-caption">
-            Only notify me when someone mentions @{{ user.nick }}.
-          </div>
-        </div>
-
-        <q-toggle
-          v-model="mentionsOnly"
-          color="primary"
-          size="32px"
-          aria-label="Mentions only notifications"
-        />
-      </div>
-      <q-btn
-        class="full-width q-mt-sm"
-        label="Enable notifications"
-        color="primary"
-        no-caps
-        outline
-        @click="requestNotificationPermission"
-      />
     </q-card>
   </div>
 </template>
 
 <script setup lang="ts">
 import type { User, UserState } from '@vpwa/shared';
-import { useNotifications } from '@/composables/useNotifications';
 import { computed } from 'vue';
-
-const { mentionsOnly, requestNotificationPermission } = useNotifications();
 
 const props = defineProps<{
   user: User | null;
@@ -190,23 +155,6 @@ const emit = defineEmits<{
 
 .status-option {
   min-height: 56px;
-}
-
-.notification-setting {
-  border: 1px solid $lilac-200;
-  background: white;
-  border-radius: 15px;
-}
-
-.notification-icon {
-  background: $lilac-100;
-  color: $lilac-500;
-  border-radius: 8px;
-}
-
-.notification-caption {
-  color: gray;
-  font-size: 11px;
 }
 </style>
 

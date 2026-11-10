@@ -38,8 +38,6 @@
     </q-list>
 
     <div class="q-pa-md">
-      <TypingIndicator />
-
       <q-input
         class="q-mb-sm q-mx-sm q-py-xs cmd"
         v-model="typed"
@@ -63,7 +61,6 @@ import { useChat } from '@/composables/useChat';
 import { useChannels } from '@/composables/useChannels';
 import { useCommands } from '@/composables/useCommands';
 import { useAvatar } from '@/composables/useAvatar';
-import TypingIndicator from '@/components/TypingIndicator.vue';
 
 const { getAvatarColor } = useAvatar();
 const { sendMsg } = useChat();
@@ -104,8 +101,12 @@ async function onSubmit(): Promise<void> {
     }
   } else {
     commandError.value = null;
-    sendMsg(inputMsg);
-    typed.value = '';
+    try {
+      await sendMsg(inputMsg);
+      typed.value = '';
+    } catch (err) {
+      commandError.value = err instanceof Error ? err.message : 'Failed to send message';
+    }
   }
 }
 

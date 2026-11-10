@@ -1,23 +1,11 @@
 <template>
   <div ref="scrollContainer" class="col scroll q-px-xl q-py-md message-scroll">
-    <div class="row q-gutter-sm q-mb-md">
-      <q-btn label="Test notification (5s)" color="primary" no-caps @click="testNotification" />
-
-      <q-btn
-        label="Test notification with mention (5s)"
-        color="primary"
-        no-caps
-        @click="testMention"
-      />
-    </div>
-    <div v-if="activeKickVotes.length" class="vote-kick-overlay column q-gutter-y-sm q-mb-md">
-      <VoteKickCard
-        v-for="vote in activeKickVotes"
-        :key="`${activeChannel?.id}:${vote.target.id}`"
-        :vote="vote"
-      />
-    </div>
-    <q-infinite-scroll v-if="activeChannel" :key="activeChannel?.id ?? ''" reverse @load="onLoad">
+    <q-infinite-scroll
+      v-if="activeChannel && activeMsgs.length"
+      :key="activeChannel.id"
+      reverse
+      @load="onLoad"
+    >
       <div
         v-for="msg in activeMsgs"
         :key="msg.id"
@@ -44,11 +32,12 @@
           <div class="col message-content q-ml-sm q-mt-xs">
             <div class="row items-center q-gutter-x-sm">
               <span>
-                {{ getSender(msg.senderId)?.name }}
-                {{ getSender(msg.senderId)?.lastName }}
+                {{ getSenderName(msg.senderId) }}
               </span>
 
-              <span class="message-info text-caption"> @{{ getSender(msg.senderId)?.nick }} </span>
+              <span v-if="getSender(msg.senderId)" class="message-info text-caption">
+                @{{ getSender(msg.senderId)?.nick }}
+              </span>
 
               <span class="message-info text-caption">
                 {{
@@ -82,18 +71,15 @@ import { useChat } from '@/composables/useChat';
 import { useChannels } from '@/composables/useChannels';
 import { useAvatar } from '@/composables/useAvatar';
 import { useAuth } from '@/composables/useAuth';
-import VoteKickCard from '@/components/VoteKickCard.vue';
-import { chatActionsService } from '@/services/chatActions.service';
 
 const { currentUser } = useAuth();
 const { getAvatarColor } = useAvatar();
-const { activeChannel, activeChannelMembers, activeKickVotes } = useChannels();
-const { activeMsgs, hasMoreMsgs, scrollTriggers, loadFollowingMsgs, getSender, receiveMsg } =
-  useChat();
+const { activeChannel, activeChannelMembers } = useChannels();
+const { activeMsgs, hasMoreMsgs, scrollTriggers, loadFollowingMsgs, getSender } = useChat();
 
 const scrollContainer = ref<HTMLElement | null>(null);
 
-function getMessageAvatarColor(senderId: string): string {
+function getMessageAvatarColor(senderId: string | null): string {
   const user = getSender(senderId);
 
   if (!user) return '#cbd5e1';
@@ -109,14 +95,21 @@ function isMentioned(text: string): boolean {
   return splitMessage(text).some((part) => part.toLowerCase() === `@${nick.toLowerCase()}`);
 }
 
-function getInitials(senderId: string): string {
+function getSenderName(senderId: string | null): string {
+  if (!senderId) return 'DeletedUser';
+  const user = getSender(senderId);
+  return user ? `${user.name} ${user.lastName}`.trim() : 'Unknown user';
+}
+
+function getInitials(senderId: string | null): string {
+  if (!senderId) return 'DU';
   const user = getSender(senderId);
   if (!user) return '?';
   return `${user.name.charAt(0)}${user.lastName.charAt(0)}`.toUpperCase();
 }
 
-function onLoad(index: number, done: (stop?: boolean) => void) {
-  loadFollowingMsgs();
+async function onLoad(index: number, done: (stop?: boolean) => void) {
+  await loadFollowingMsgs();
   done(!hasMoreMsgs.value);
 }
 
@@ -134,49 +127,7 @@ function isValidMention(part: string): boolean {
   );
 }
 
-function testNotification(): void {
-  const channelId = activeChannel.value?.id;
-  const user = currentUser.value;
-
-  if (!channelId || !user) return;
-
-  const sender = activeChannelMembers.value.find((member) => member.id !== user.id);
-
-  if (!sender) return;
-
-  setTimeout(() => {
-    const newMsg = chatActionsService.sendMessage(
-      channelId,
-      sender.id,
-      `Hey, this is a test notification!`,
-    );
-
-    receiveMsg(newMsg);
-  }, 5000);
-}
-
-function testMention() {
-  const channelId = activeChannel.value?.id;
-  const user = currentUser.value;
-
-  if (!channelId || !user) return;
-
-  const sender = activeChannelMembers.value.find((member) => member.id !== user.id);
-
-  if (!sender) return;
-
-  setTimeout(() => {
-    const newMsg = chatActionsService.sendMessage(
-      channelId,
-      sender.id,
-      `Hey, @${user.nick} this is a test notification!`,
-    );
-
-    receiveMsg(newMsg);
-  }, 5000);
-}
-
-watch([scrollTriggers, activeKickVotes], async () => {
+watch(scrollTriggers, async () => {
   await nextTick(() => {
     if (scrollContainer.value) {
       scrollContainer.value.scrollTo({ top: scrollContainer.value.scrollHeight });
@@ -186,12 +137,6 @@ watch([scrollTriggers, activeKickVotes], async () => {
 </script>
 
 <style scoped lang="scss">
-.vote-kick-overlay {
-  position: sticky;
-  top: 0;
-  z-index: 1;
-}
-
 .profile-avatar {
   flex-shrink: 0;
 

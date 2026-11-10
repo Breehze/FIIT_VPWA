@@ -3,10 +3,14 @@ import type { Channel, ChannelType, User } from '@vpwa/shared';
 import { channelActionsService, type InvitedChannel } from '@/services/channelActions.service';
 import { useAuth } from '@/composables/useAuth';
 import { useNotifications } from '@/composables/useNotifications';
+import { realtimeSocketService } from '@/services/realtimeSocket.service';
 
 const channels = ref<Channel[]>([]);
 const invitedChannels = ref<InvitedChannel[]>([]);
 const activeChannelId = ref<string | null>(null);
+const membersByChannel = ref<Record<string, User[]>>({});
+const onlineUserIds = ref(new Set<string>());
+const statusOverrides = ref<Record<string, User['state']>>({});
 
 export function useChannels() {
   const { currentUser } = useAuth();
@@ -31,30 +35,45 @@ export function useChannels() {
   });
 
   const activeChannelMembers = computed<User[]>(() => {
-    if (!activeChannelId.value) return [];
-
-    const members = channelActionsService.getChannelMembers(activeChannelId.value);
+    const members = membersByChannel.value[activeChannelId.value ?? ''] ?? [];
 
     return members.map((member) => {
-      if (member.id === currentUser.value?.id) {
-        return {
-          ...member,
-          state: currentUser.value.state,
-        };
-      }
-
-      return member;
+      const preference =
+        member.id === currentUser.value?.id
+          ? currentUser.value.state
+          : (statusOverrides.value[member.id] ?? member.state);
+      return {
+        ...member,
+        state:
+          !onlineUserIds.value.has(member.id) || preference === 'Offline'
+            ? ('Offline' as const)
+            : preference,
+      };
     });
   });
 
-  const activeKickVotes = computed(() => {
-    const channel = channels.value.find((c) => c.id === activeChannelId.value);
-    if (!channel) return [];
-    return channelActionsService.getKickVotes(channel.id);
-  });
+  function setOnlineUsers(ids: string[]): void {
+    onlineUserIds.value = new Set(ids);
+  }
+
+  function setMemberStatus(userId: string, state: User['state']): void {
+    statusOverrides.value = { ...statusOverrides.value, [userId]: state };
+  }
 
   function selectChannel(channelId: string) {
     activeChannelId.value = channelId;
+    void refreshMembers(channelId);
+  }
+
+  async function refreshMembers(channelId: string): Promise<void> {
+    try {
+      const members = await channelActionsService.fetchChannelMembers(channelId);
+      if (channels.value.some((channel) => channel.id === channelId)) {
+        membersByChannel.value = { ...membersByChannel.value, [channelId]: members };
+      }
+    } catch (error) {
+      console.error('Failed to load channel members:', error);
+    }
   }
 
   async function refreshChannels(): Promise<void> {
@@ -63,6 +82,9 @@ export function useChannels() {
     if (!userId) {
       channels.value = [];
       activeChannelId.value = null;
+      membersByChannel.value = {};
+      onlineUserIds.value = new Set();
+      statusOverrides.value = {};
       return;
     }
 
@@ -73,6 +95,10 @@ export function useChannels() {
     }
 
     channels.value = updatedChannels;
+    const activeIds = new Set(updatedChannels.map((channel) => channel.id));
+    membersByChannel.value = Object.fromEntries(
+      Object.entries(membersByChannel.value).filter(([id]) => activeIds.has(id)),
+    );
 
     if (!channels.value.some((c) => c.id === activeChannelId.value)) {
       if (activeChannelId.value) {
@@ -81,6 +107,7 @@ export function useChannels() {
 
       activeChannelId.value = channels.value[0]?.id ?? null;
     }
+    if (activeChannelId.value) void refreshMembers(activeChannelId.value);
   }
 
   async function refreshInvites(): Promise<void> {
@@ -100,12 +127,6 @@ export function useChannels() {
     invitedChannels.value = invites;
   }
 
-  function refreshChannelsSafely(): void {
-    void refreshChannels().catch((error) => {
-      console.error('Failed to refresh channels:', error);
-    });
-  }
-
   async function createChannel(name: string, type: ChannelType): Promise<Channel> {
     if (!currentUser.value) {
       throw new Error('You must be logged in to create a channel');
@@ -115,6 +136,8 @@ export function useChannels() {
 
     await refreshChannels();
     activeChannelId.value = newChannel.id;
+    await refreshMembers(newChannel.id);
+    await realtimeSocketService.refreshMemberships();
 
     return newChannel;
   }
@@ -136,32 +159,35 @@ export function useChannels() {
 
     await refreshChannels();
     activeChannelId.value = joined.id;
+    await refreshMembers(joined.id);
+    await realtimeSocketService.refreshMemberships();
 
     return joined;
   }
 
-  function leaveChannel(channelId: string) {
-    channelActionsService.leaveChannel(channelId, currentUser.value?.id);
-    afterChannelRemoved(channelId);
+  async function leaveChannel(channelId: string) {
+    await channelActionsService.leaveChannelApi(channelId);
+    await afterChannelRemoved(channelId);
   }
 
-  function deleteChannel(channelId: string) {
-    channelActionsService.deleteChannel(channelId, currentUser.value?.id);
-    afterChannelRemoved(channelId);
+  async function deleteChannel(channelId: string) {
+    await channelActionsService.deleteChannelApi(channelId);
+    await afterChannelRemoved(channelId);
   }
 
-  function kickMember(channelId: string, nickname: string) {
-    channelActionsService.kickMember(channelId, nickname, currentUser.value?.id);
-    refreshChannelsSafely();
+  async function kickMember(channelId: string, nickname: string) {
+    await channelActionsService.kickMemberApi(channelId, nickname);
+    await refreshMembers(channelId);
   }
 
-  function revokeMember(channelId: string, nickname: string) {
-    channelActionsService.revokeMember(channelId, nickname, currentUser.value?.id);
-    refreshChannelsSafely();
+  async function revokeMember(channelId: string, nickname: string) {
+    await channelActionsService.revokeMemberApi(channelId, nickname);
+    await refreshMembers(channelId);
   }
 
-  function afterChannelRemoved(channelId: string) {
-    refreshChannelsSafely();
+  async function afterChannelRemoved(channelId: string) {
+    await refreshChannels();
+    await realtimeSocketService.refreshMemberships();
     removeChannelNotifications(channelId);
   }
 
@@ -184,12 +210,15 @@ export function useChannels() {
 
     await refreshChannels();
     await refreshInvites();
+    await realtimeSocketService.refreshMemberships();
+    await realtimeSocketService.loadInvites();
 
     if (
       pendingInvite &&
       channels.value.some((channel) => channel.id === pendingInvite.channel.id)
     ) {
       activeChannelId.value = pendingInvite.channel.id;
+      await refreshMembers(pendingInvite.channel.id);
     }
   }
 
@@ -201,17 +230,24 @@ export function useChannels() {
     await channelActionsService.processInviteApi(inviteId, 'reject');
 
     await refreshInvites();
+    await realtimeSocketService.loadInvites();
   }
 
   return {
     channels,
     invitedChannels,
+    setInvites: (invites: InvitedChannel[]) => {
+      invitedChannels.value = invites;
+    },
     activeChannelId,
     activeChannel,
     activeChannelMembers,
-    activeKickVotes,
+    membersByChannel,
+    setOnlineUsers,
+    setMemberStatus,
     selectChannel,
     refreshChannels,
+    refreshMembers,
     createChannel,
     joinChannel,
     leaveChannel,

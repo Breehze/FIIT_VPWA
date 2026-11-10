@@ -1,6 +1,7 @@
 import { ref, watch } from 'vue';
 import type { Msg } from '@vpwa/shared';
-import { chatActionsService } from '@/services/chatActions.service';
+import { fetchChannelMessages } from '@/services/chatActions.service';
+import { realtimeSocketService } from '@/services/realtimeSocket.service';
 import { useChannels } from '@/composables/useChannels';
 import { useAuth } from './useAuth';
 import { useNotifications } from '@/composables/useNotifications';
@@ -8,57 +9,49 @@ import { useNotifications } from '@/composables/useNotifications';
 const activeMsgs = ref<Msg[]>([]);
 const hasMoreMsgs = ref(true);
 const scrollTriggers = ref(0);
-const missedMessages: Msg[] = [];
+let loadVersion = 0;
 
 export function useChat() {
-  const { activeChannel, refreshChannels } = useChannels();
+  const { activeChannel, activeChannelMembers } = useChannels();
   const { currentUser } = useAuth();
-  const { addUnreadMessage, markChannelAsRead, notifyIncomingMessage } = useNotifications();
+  const { addUnreadMessage, markChannelAsRead } = useNotifications();
 
   watch(
     () => activeChannel.value?.id,
     (newChannelId) => {
       if (newChannelId) {
-        loadInitialMsgs();
+        void loadInitialMsgs();
         markChannelAsRead(newChannelId);
+      } else {
+        activeMsgs.value = [];
       }
     },
     { immediate: true },
   );
 
-  watch(
-    () => currentUser.value?.state,
-    (newStatus, oldStatus) => {
-      if (oldStatus !== 'Offline' || newStatus !== 'Online') {
-        return;
-      }
-
-      void refreshChannels().catch((error) => {
-        console.error('Failed to refresh channels:', error);
-      });
-
-      for (const msg of missedMessages.splice(0)) {
-        addUnreadMessage(msg.channelId, activeChannel.value?.id);
-      }
-
-      loadInitialMsgs();
-
-      if (activeChannel.value) {
-        markChannelAsRead(activeChannel.value.id);
-      }
-    },
-  );
-
-  function loadInitialMsgs(): void {
+  async function loadInitialMsgs(): Promise<void> {
     const activeChannelId = activeChannel.value?.id ?? null;
-    if (!activeChannelId) {
-      return;
+    const version = ++loadVersion;
+    if (!activeChannelId) return;
+    activeMsgs.value = [];
+    try {
+      const messages = await fetchChannelMessages(activeChannelId);
+      if (version !== loadVersion || activeChannel.value?.id !== activeChannelId) return;
+      activeMsgs.value = [
+        ...new Map(
+          [...messages, ...activeMsgs.value.filter((m) => m.channelId === activeChannelId)].map(
+            (m) => [m.id, m],
+          ),
+        ).values(),
+      ].sort((a, b) => a.id - b.id);
+      hasMoreMsgs.value = messages.length >= 10;
+      scrollTriggers.value++;
+    } catch (error) {
+      console.error('Failed to load messages:', error);
     }
-    activeMsgs.value = chatActionsService.getChannelMessages(activeChannelId, 10);
-    hasMoreMsgs.value = activeMsgs.value.length >= 10;
   }
 
-  function loadFollowingMsgs(): void {
+  async function loadFollowingMsgs(): Promise<void> {
     const activeChannelId = activeChannel.value?.id ?? null;
     if (!activeMsgs.value.length || !activeChannelId) {
       return;
@@ -69,55 +62,41 @@ export function useChat() {
       return;
     }
 
-    const nextMsgs = chatActionsService.getChannelMessages(activeChannelId, 10, lastMsgShown.id);
-    activeMsgs.value.unshift(...nextMsgs);
-
-    if (nextMsgs.length < 10) {
-      hasMoreMsgs.value = false;
+    try {
+      const nextMsgs = await fetchChannelMessages(activeChannelId, 10, lastMsgShown.id);
+      if (activeChannel.value?.id !== activeChannelId) return;
+      activeMsgs.value = [
+        ...nextMsgs.filter((m) => !activeMsgs.value.some((existing) => existing.id === m.id)),
+        ...activeMsgs.value,
+      ];
+      hasMoreMsgs.value = nextMsgs.length >= 10;
+    } catch (error) {
+      console.error('Failed to load older messages:', error);
     }
   }
 
-  function sendMsg(msg: string) {
+  async function sendMsg(msg: string): Promise<void> {
     const channelId = activeChannel.value?.id;
-    const sender = currentUser.value?.id;
-    if (!channelId || !sender) {
-      return;
-    }
-    const newMsg = chatActionsService.sendMessage(channelId, sender, msg);
-    activeMsgs.value.push(newMsg);
-    scrollTriggers.value++;
+    if (!channelId) throw new Error('Select a channel first');
+    await realtimeSocketService.sendMessage(channelId, msg);
   }
 
-  function getSender(senderId: string) {
-    return chatActionsService.getUserById(senderId);
+  function getSender(senderId: string | null) {
+    if (!senderId) return undefined;
+    return (
+      activeChannelMembers.value.find((member) => member.id === senderId) ??
+      (currentUser.value?.id === senderId ? currentUser.value : undefined)
+    );
   }
 
   function receiveMsg(newMsg: Msg): void {
     const activeChannelId = activeChannel.value?.id;
 
-    if (newMsg.senderId === currentUser.value?.id) {
-      return;
-    }
-
-    if (currentUser.value?.state === 'Offline') {
-      missedMessages.push(newMsg);
-      return;
-    }
-
-    const sender = getSender(newMsg.senderId);
-
-    if (sender) {
-      notifyIncomingMessage(
-        newMsg.senderId,
-        `${sender.name} ${sender.lastName}`,
-        newMsg.textContent,
-      );
-    }
-
     if (newMsg.channelId === activeChannelId) {
+      if (activeMsgs.value.some((msg) => msg.id === newMsg.id)) return;
       activeMsgs.value.push(newMsg);
       scrollTriggers.value++;
-    } else {
+    } else if (newMsg.senderId !== currentUser.value?.id) {
       addUnreadMessage(newMsg.channelId, activeChannelId);
     }
   }
