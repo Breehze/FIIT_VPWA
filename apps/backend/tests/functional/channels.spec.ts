@@ -231,6 +231,78 @@ test.group('Channels endpoints (/channels)', (group) => {
     inviteRes.assertStatus(201)
   })
 
+  test('kick vote progress is member-only, persists distinct votes, and broadcasts changes', async ({
+    client,
+    assert,
+  }) => {
+    const owner = await createTestUser('owner')
+    const voter = await createTestUser('voter')
+    const target = await createTestUser('target')
+    const outsider = await createTestUser('outsider')
+    const channel = await Channel.createWithOwner(owner.id, `votes-${randomUUID()}`, 'public')
+    await UserChannel.addMember(channel.id, voter.id)
+    await UserChannel.addMember(channel.id, target.id)
+
+    const forbidden = await client
+      .get(`/channels/${channel.id}/kick-votes`)
+      .withGuard('web')
+      .loginAs(outsider)
+    forbidden.assertStatus(403)
+
+    const broadcast = socket.fake()
+    try {
+      for (const expected of [1, 1]) {
+        const response = await client
+          .post(`/channels/${channel.id}/kick`)
+          .withGuard('web')
+          .loginAs(voter)
+          .json({ nick: target.nick })
+        response.assertStatus(200)
+        assert.deepEqual(response.body(), { banned: false, votes: expected })
+      }
+
+      broadcast.assertEmittedTo(`channels/${channel.id}`, 'kick:updated', {
+        data: { channelId: channel.id },
+      })
+
+      const votes = await client
+        .get(`/channels/${channel.id}/kick-votes`)
+        .withGuard('web')
+        .loginAs(voter)
+      votes.assertStatus(200)
+      assert.deepEqual(votes.body(), [
+        { targetId: target.id, nick: target.nick, votes: 1, votedByMe: true },
+      ])
+
+      const ownerVotes = await client
+        .get(`/channels/${channel.id}/kick-votes`)
+        .withGuard('web')
+        .loginAs(owner)
+      assert.isFalse(ownerVotes.body()[0].votedByMe)
+
+      const kick = await client
+        .post(`/channels/${channel.id}/kick`)
+        .withGuard('web')
+        .loginAs(owner)
+        .json({ nick: target.nick })
+      kick.assertStatus(200)
+      assert.isTrue(kick.body().banned)
+
+      const empty = await client
+        .get(`/channels/${channel.id}/kick-votes`)
+        .withGuard('web')
+        .loginAs(voter)
+      assert.deepEqual(empty.body(), [])
+      const banned = await client
+        .get(`/channels/${channel.id}/kick-votes`)
+        .withGuard('web')
+        .loginAs(target)
+      banned.assertStatus(403)
+    } finally {
+      broadcast.restore()
+    }
+  })
+
   test('POST /channels/:channelId/revoke removes a member from a private channel', async ({
     client,
     assert,

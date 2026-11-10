@@ -3,7 +3,7 @@ export type ContentType = 'text' | 'file' | 'img';
 export interface Msg {
   id: number; // serial PK
   channelId: string; // uuid FK -> Channel
-  senderId: string; // uuid FK -> User
+  senderId: string | null; // uuid FK -> User; null when the sender is deleted
   createdAt: string; // ISO timestamp
   contentType: ContentType;
   textContent: string;

@@ -28,6 +28,10 @@ export default class ChannelsController {
     return this.channelService.getChannelMembers(user.id, params.channelId)
   }
 
+  async kickVotes({ auth, params }: HttpContext) {
+    return this.channelService.listKickVotes(auth.getUserOrFail().id, params.channelId)
+  }
+
   /**
    * GET /channels/:channelId/msgs?beforeId=some_msg_id&limit=some_num
    */

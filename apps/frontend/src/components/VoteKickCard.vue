@@ -6,8 +6,17 @@
   >
     <q-card-section class="row items-center no-wrap q-px-md q-py-sm text-caption">
       <span class="col" role="status">
-        Kick @{{ vote.target.nick }} · {{ vote.voteCount }} / {{ KICK_VOTE_THRESHOLD }} votes
+        Kick @{{ vote.nick }} · {{ vote.votes }} / {{ KICK_VOTE_THRESHOLD }} votes
       </span>
+      <q-btn
+        v-if="vote.targetId !== currentUserId && (!vote.votedByMe || currentUserId === ownerId)"
+        flat
+        dense
+        no-caps
+        size="sm"
+        :label="currentUserId === ownerId ? 'Kick now' : 'Vote'"
+        @click="emit('vote', vote.nick)"
+      />
       <q-btn
         flat
         round
@@ -26,7 +35,8 @@
 import { ref } from 'vue';
 import { KICK_VOTE_THRESHOLD, type KickVoteProgress } from '@/services/channelActions.service';
 
-defineProps<{ vote: KickVoteProgress }>();
+defineProps<{ vote: KickVoteProgress; currentUserId: string | undefined; ownerId: string }>();
+const emit = defineEmits<{ (event: 'vote', nick: string): void }>();
 const closed = ref(false);
 </script>
 

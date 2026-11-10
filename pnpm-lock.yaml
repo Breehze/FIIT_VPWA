@@ -265,6 +265,9 @@ importers:
       '@quasar/extras':
         specifier: ^2.1.0
         version: 2.1.0
+      '@rlanz/socket':
+        specifier: 0.2.4
+        version: 0.2.4(@adonisjs/assembler@8.6.0(typescript@6.0.3))(@adonisjs/core@7.6.0(@adonisjs/assembler@8.6.0(typescript@6.0.3))(@vinejs/vine@4.4.0)(pino-pretty@13.2.0)(supports-color@8.1.1)(youch@4.1.1))(typescript@6.0.3)(vue@3.5.42(typescript@6.0.3))
       '@vpwa/shared':
         specifier: workspace:*
         version: link:../../packages/shared

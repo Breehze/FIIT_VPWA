@@ -1,7 +1,4 @@
 import type { User } from '@vpwa/shared';
-import { MOCK_USERS } from '@/mocks';
-
-const delay = (ms = 400) => new Promise((resolve) => setTimeout(resolve, ms));
 
 export interface LoginDto {
   email: string;
@@ -17,7 +14,6 @@ export interface RegisterDto {
   email: string;
 }
 
-const USE_MOCK = false;
 const API_URL = 'http://localhost:3333';
 
 interface UserApiResponse {
@@ -39,34 +35,6 @@ async function readResponse<T>(response: Response): Promise<T> {
 
 class AuthService {
   async login(credentials: LoginDto): Promise<User> {
-    if (USE_MOCK) {
-      await delay(400);
-
-      const matched = MOCK_USERS.find(
-        (u) => u.email.toLowerCase() === credentials.email.toLowerCase(),
-      );
-
-      const fallback = MOCK_USERS[0] ?? {
-        id: '123e4567-e89b-12d3-a456-426614174000',
-        name: 'John',
-        lastName: 'Doe',
-        nick: 'john',
-        email: credentials.email,
-        state: 'Online',
-        mentionOnlyNotif: false,
-      };
-
-      const user: User = matched ?? {
-        ...fallback,
-        email: credentials.email,
-      };
-
-      localStorage.setItem('auth_token', 'mock-jwt-token-xyz');
-      localStorage.setItem('auth_user', JSON.stringify(user));
-
-      return user;
-    }
-
     const response = await fetch(`${API_URL}/login`, {
       method: 'POST',
       credentials: 'include',
@@ -82,26 +50,6 @@ class AuthService {
   }
 
   async register(data: RegisterDto): Promise<User> {
-    if (USE_MOCK) {
-      await delay(400);
-
-      const newUser: User = {
-        id: crypto.randomUUID(),
-        name: data.name || data.nickname,
-        lastName: data.lastName || '',
-        nick: data.nickname,
-        email: data.email || `${data.nickname.toLowerCase()}@vpwa.sk`,
-        state: 'Online',
-        mentionOnlyNotif: false,
-      };
-
-      MOCK_USERS.push(newUser);
-      localStorage.setItem('auth_token', 'mock-jwt-token-xyz');
-      localStorage.setItem('auth_user', JSON.stringify(newUser));
-
-      return newUser;
-    }
-
     const response = await fetch(`${API_URL}/register`, {
       method: 'POST',
       credentials: 'include',
@@ -124,12 +72,6 @@ class AuthService {
   }
 
   async logout(): Promise<void> {
-    if (USE_MOCK) {
-      localStorage.removeItem('auth_token');
-      localStorage.removeItem('auth_user');
-      return;
-    }
-
     const response = await fetch(`${API_URL}/logout`, {
       method: 'POST',
       credentials: 'include',
@@ -141,16 +83,7 @@ class AuthService {
     await readResponse<{ message: string }>(response);
   }
 
-  getUserFromStorage(): User | null {
-    const raw = localStorage.getItem('auth_user');
-    return raw ? JSON.parse(raw) : null;
-  }
-
   async getCurrentUser(): Promise<User | null> {
-    if (USE_MOCK) {
-      return this.getUserFromStorage();
-    }
-
     const response = await fetch(`${API_URL}/user`, {
       credentials: 'include',
       headers: {

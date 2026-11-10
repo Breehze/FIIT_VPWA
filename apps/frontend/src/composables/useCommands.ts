@@ -38,11 +38,11 @@ export function useCommands() {
 
       switch (cmd.toLowerCase()) {
         case 'quit':
-          deleteChannel(channel.id);
+          await deleteChannel(channel.id);
           break;
 
         case 'cancel':
-          leaveChannel(channel.id);
+          await leaveChannel(channel.id);
           break;
 
         case 'invite':
@@ -58,7 +58,7 @@ export function useCommands() {
             return 'Usage: /revoke nickName';
           }
 
-          revokeMember(channel.id, args[0]);
+          await revokeMember(channel.id, args[0]);
           break;
 
         case 'kick':
@@ -66,7 +66,7 @@ export function useCommands() {
             return 'Usage: /kick nickName';
           }
 
-          kickMember(channel.id, args[0]);
+          await kickMember(channel.id, args[0]);
           break;
 
         case 'list':

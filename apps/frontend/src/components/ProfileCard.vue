@@ -77,25 +77,22 @@
           </q-list>
         </q-btn-dropdown>
       </div>
-      <div
-        class="notification-setting q--avoid-card-border row items-start no-wrap q-mt-sm q-pa-sm"
-      >
+      <div class="notification-setting row items-start no-wrap q-mt-sm q-pa-sm">
         <div class="notification-icon flex flex-center q-pa-xs q-mr-sm">
           <q-icon name="notifications_none" size="16px" />
         </div>
-
         <div class="notification-text col">
           <div class="text-weight-medium">Mentions only</div>
           <div class="notification-caption">
             Only notify me when someone mentions @{{ user.nick }}.
           </div>
         </div>
-
         <q-toggle
-          v-model="mentionsOnly"
+          :model-value="user.mentionOnlyNotif"
           color="primary"
           size="32px"
           aria-label="Mentions only notifications"
+          @update:model-value="emit('notificationChange', Boolean($event))"
         />
       </div>
       <q-btn
@@ -112,10 +109,10 @@
 
 <script setup lang="ts">
 import type { User, UserState } from '@vpwa/shared';
-import { useNotifications } from '@/composables/useNotifications';
 import { computed } from 'vue';
+import { useNotifications } from '@/composables/useNotifications';
 
-const { mentionsOnly, requestNotificationPermission } = useNotifications();
+const { requestNotificationPermission } = useNotifications();
 
 const props = defineProps<{
   user: User | null;
@@ -135,6 +132,7 @@ const statusClass = computed(() => {
 
 const emit = defineEmits<{
   (e: 'statusChange', status: UserState): void;
+  (e: 'notificationChange', mentionsOnly: boolean): void;
 }>();
 </script>
 
