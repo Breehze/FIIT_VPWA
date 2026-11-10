@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto'
+import { DateTime } from 'luxon'
 import { test } from '@japa/runner'
 import testUtils from '@adonisjs/core/services/test_utils'
 import socketService from '@rlanz/socket/services/main'
@@ -118,6 +119,34 @@ test.group('Socket messages', (group) => {
     subscribed = false
     await assert.rejects(() => authorize(ctx, next), 'Not a member of this channel')
     assert.isFalse(subscribed)
+  })
+
+  test('cannot subscribe or send to a channel after 30 days of inactivity', async ({ assert }) => {
+    const owner = await createUser()
+    const room = await Channel.createWithOwner(owner.id, `expired-${randomUUID()}`, 'public')
+    await room.merge({ lastActivity: DateTime.now().minus({ days: 31 }) }).save()
+
+    const channel = new MessagesChannel()
+    channel.$setContext(
+      { to: () => ({ emit: () => {}, except: () => ({ emit: () => {} }) }) },
+      `channels/${room.id}`,
+      { channelId: room.id }
+    )
+    const socket = { getUserOrFail: () => owner } as AuthenticatedSocket<User>
+    const authorize = MessagesChannel.middlewares[0]
+    const ctx: MiddlewareContext<User> = {
+      channel: `channels/${room.id}`,
+      params: { channelId: room.id },
+      socket,
+      setPresenceData: () => {},
+    }
+
+    await assert.rejects(() => authorize(ctx, async () => {}), 'Not a member of this channel')
+    await assert.rejects(
+      () => channel.send(socket, { text: 'Late message' }),
+      'Channel has expired'
+    )
+    assert.lengthOf(await Msg.query().where('channelId', room.id), 0)
   })
 })
 

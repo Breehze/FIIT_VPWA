@@ -24,8 +24,14 @@ type LiveEvents = {
 async function requireChannelMember(ctx: MiddlewareContext<User>, next: () => Promise<void>) {
   const channelId = ctx.params.channelId
   const userId = ctx.socket.getUserOrFail().id
+  const channel = channelId ? await Channel.find(channelId) : null
 
-  if (!channelId || !(await UserChannel.findActiveForUser(channelId, userId))) {
+  if (
+    !channelId ||
+    !(await UserChannel.findActiveForUser(channelId, userId)) ||
+    !channel ||
+    channel.isExpired()
+  ) {
     throw new SocketResponseError('Not a member of this channel')
   }
 
@@ -65,6 +71,15 @@ export default class MessagesChannel extends BaseChannel<User, LiveEvents> {
     }
 
     const message = await db.transaction(async (trx) => {
+      // Serialize sends with expiry cleanup so an expired channel cannot be revived.
+      const channel = await Channel.query({ client: trx })
+        .where('id', channelId)
+        .forUpdate()
+        .first()
+      if (!channel || channel.isExpired()) {
+        throw new SocketResponseError('Channel has expired')
+      }
+
       const saved = await Msg.create(
         { channelId, senderId: userId, contentType: 'text', textContent: text },
         { client: trx }
