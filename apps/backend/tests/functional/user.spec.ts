@@ -77,7 +77,8 @@ test.group('User endpoints (/user)', (group) => {
       .post('/user/set_status')
       .withGuard('web')
       .loginAs(user)
-      .json({ status: 'Busy' })
+      // Bypass the generated client type deliberately to exercise server-side validation.
+      .json({ status: 'Busy' as never })
 
     response.assertStatus(422)
   })

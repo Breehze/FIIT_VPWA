@@ -1,4 +1,5 @@
 import { Exception } from '@adonisjs/core/exceptions'
+import { DateTime } from 'luxon'
 import app from '@adonisjs/core/services/app'
 import db from '@adonisjs/lucid/services/db'
 import socket from '@rlanz/socket/services/main'
@@ -35,6 +36,56 @@ export default class ChannelService {
     await channel.deleteWithRelations()
     for (const member of members) notifyChannelChange(member.userId, channel.id)
     await disconnectSubscribers(channel.id)
+  }
+
+  private async removeIfExpired(channelId: string, cutoff: DateTime): Promise<boolean> {
+    const memberIds = await db.transaction(async (trx) => {
+      const channel = await Channel.query({ client: trx })
+        .where('id', channelId)
+        .forUpdate()
+        .first()
+
+      // A different worker may have removed it, or a new message may have reset its activity.
+      if (!channel || channel.lastActivity >= cutoff) return null
+
+      const members = await UserChannel.query({ client: trx })
+        .where('channelId', channel.id)
+        .where('banned', false)
+
+      await channel.deleteWithRelations(trx)
+      return members.map((member) => member.userId)
+    })
+
+    if (!memberIds) return false
+    for (const userId of memberIds) notifyChannelChange(userId, channelId)
+    await disconnectSubscribers(channelId)
+    return true
+  }
+
+  /** Remove channels with no new messages for more than 30 days. Safe to run from multiple servers. */
+  async pruneExpiredChannels(now = DateTime.now()): Promise<number> {
+    const cutoff = now.minus({ days: 30 })
+    let lastId: string | undefined
+    let removed = 0
+
+    while (true) {
+      const candidates = await Channel.query()
+        .where('lastActivity', '<', cutoff.toJSDate())
+        .if(!!lastId, (query) => query.where('id', '>', lastId!))
+        .orderBy('id')
+        .limit(100)
+
+      if (candidates.length === 0) break
+
+      for (const candidate of candidates) {
+        lastId = candidate.id
+        if (await this.removeIfExpired(candidate.id, cutoff)) removed++
+      }
+
+      if (candidates.length < 100) break
+    }
+
+    return removed
   }
 
   /**
@@ -94,7 +145,12 @@ export default class ChannelService {
 
     if (existing) {
       if (existing.isExpired()) {
-        await this.deleteAndNotify(existing)
+        await this.removeIfExpired(existing.id, DateTime.now().minus({ days: 30 }))
+        // Another request may have created or refreshed this channel in the meantime.
+        const current = await Channel.findByName(rawName)
+        if (current) {
+          throw new Exception(`Channel #${current.name} already exists`, { status: 409 })
+        }
       } else {
         throw new Exception(`Channel #${existing.name} already exists`, { status: 409 })
       }
@@ -109,15 +165,18 @@ export default class ChannelService {
    * POST /channels/join
    */
   async joinChannel(userId: string, rawName: string): Promise<Channel> {
-    const channel = await Channel.findByName(rawName)
+    let channel = await Channel.findByName(rawName)
 
     if (!channel) {
       throw new Exception('Channel not found', { status: 404 })
     }
 
     if (channel.isExpired()) {
-      await this.deleteAndNotify(channel)
-      throw new Exception('Channel not found', { status: 404 })
+      await this.removeIfExpired(channel.id, DateTime.now().minus({ days: 30 }))
+      channel = await Channel.findByName(rawName)
+      if (!channel || channel.isExpired()) {
+        throw new Exception('Channel not found', { status: 404 })
+      }
     }
 
     const membership = await UserChannel.findForUser(channel.id, userId)

@@ -56,6 +56,10 @@ export default defineConfig({
       file: () => import('@rlanz/socket/provider'),
       environment: ['web', 'test'],
     },
+    {
+      file: () => import('#providers/channel_cleanup_provider'),
+      environment: ['web'],
+    },
     () => import('#providers/api_provider'),
   ],
 

@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto'
 import { DateTime } from 'luxon'
 import db from '@adonisjs/lucid/services/db'
+import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import { ChannelSchema } from '#database/schema'
 import { belongsTo, hasMany } from '@adonisjs/lucid/orm'
 import type { BelongsTo, HasMany } from '@adonisjs/lucid/types/relations'
@@ -45,6 +46,7 @@ export default class Channel extends ChannelSchema {
 
   static async listForUser(userId: string): Promise<Channel[]> {
     return this.query()
+      .where('lastActivity', '>=', DateTime.now().minus({ days: 30 }).toJSDate())
       .whereHas('memberships', (query) => {
         query.where('userId', userId).where('banned', false)
       })
@@ -96,8 +98,8 @@ export default class Channel extends ChannelSchema {
     return this.lastActivity < cutoff
   }
 
-  async deleteWithRelations(): Promise<void> {
-    await db.transaction(async (trx) => {
+  async deleteWithRelations(transaction?: TransactionClientContract): Promise<void> {
+    const deleteRelations = async (trx: TransactionClientContract) => {
       const msgSubquery = Msg.query({ client: trx }).where('channelId', this.id).select('id')
       await MsgMention.query({ client: trx }).whereIn('msgId', msgSubquery).delete()
       await Msg.query({ client: trx }).where('channelId', this.id).delete()
@@ -111,6 +113,12 @@ export default class Channel extends ChannelSchema {
       await Invite.query({ client: trx }).where('channelId', this.id).delete()
       await UserChannel.query({ client: trx }).where('channelId', this.id).delete()
       await Channel.query({ client: trx }).where('id', this.id).delete()
-    })
+    }
+
+    if (transaction) {
+      await deleteRelations(transaction)
+    } else {
+      await db.transaction(deleteRelations)
+    }
   }
 }
