@@ -5,6 +5,7 @@ import { test } from '@japa/runner'
 import testUtils from '@adonisjs/core/services/test_utils'
 import app from '@adonisjs/core/services/app'
 import socket from '@rlanz/socket/services/main'
+import db from '@adonisjs/lucid/services/db'
 import Channel from '#models/channel'
 import User from '#models/user'
 import UserChannel from '#models/user_channel'
@@ -49,6 +50,22 @@ test.group('Channels endpoints (/channels)', (group) => {
     listRes.assertStatus(200)
     assert.lengthOf(listRes.body(), 1)
     assert.equal(listRes.body()[0].id, createdChannel.id)
+  })
+
+  test('channel names are unique in the database regardless of case', async ({ assert }) => {
+    const owner = await createTestUser('owner')
+    const channel = await Channel.createWithOwner(owner.id, 'Study-Room', 'public')
+
+    const duplicate = await db.rawQuery(
+      `INSERT INTO channels (id, owner, name, type, last_activity, created_at)
+       VALUES (?, ?, ?, 'public', NOW(), NOW())
+       ON CONFLICT DO NOTHING RETURNING id`,
+      [randomUUID(), owner.id, 'study-room']
+    )
+
+    assert.lengthOf(duplicate.rows, 0)
+    const found = await Channel.findByName('STUDY-ROOM')
+    assert.equal(found?.id, channel.id)
   })
 
   test('POST /channels/join returns 404 when channel does not exist, and joins when public', async ({
