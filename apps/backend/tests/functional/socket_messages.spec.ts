@@ -5,6 +5,7 @@ import socketService from '@rlanz/socket/services/main'
 import type { AuthenticatedSocket, MiddlewareContext } from '@rlanz/socket/types'
 import MessagesChannel from '#channels/messages_channel'
 import UserUpdatesChannel from '#channels/user_updates_channel'
+import OnlineUsersChannel from '#channels/online_users_channel'
 import ChannelService from '#services/channel_service'
 import Channel from '#models/channel'
 import Invite from '#models/invite'
@@ -184,6 +185,15 @@ test.group('Socket user updates', (group) => {
 })
 
 test.group('Socket subscriptions', () => {
+  test('global presence uses authenticated user identity', ({ assert }) => {
+    const channel = new OnlineUsersChannel()
+    const user = { id: 'alice' } as User
+    const socket = { getUserOrFail: () => user } as AuthenticatedSocket<User>
+
+    assert.isTrue(OnlineUsersChannel.options.presence)
+    assert.deepEqual(channel.getPresenceInfo(socket), { id: 'alice' })
+  })
+
   test('presence exposes the authenticated member identity', ({ assert }) => {
     const channel = new MessagesChannel()
     const user = { id: 'alice', nick: 'Alice' } as User

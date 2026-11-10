@@ -4,7 +4,14 @@
       <div class="brand-logo flex flex-center">🌸</div>
       <h1 class="q-ma-none">Lilac</h1>
     </div>
-    <ProfileCard :user="currentUser" @status-change="updateStatus" />
+    <ProfileCard
+      :user="currentUser"
+      @status-change="updateStatus"
+      @notification-change="handleNotificationChange"
+    />
+    <div v-if="notificationError" class="text-negative q-mx-md q-mt-sm" role="alert">
+      {{ notificationError }}
+    </div>
     <PendingInvites
       class="q-mt-sm"
       :invites="invitedChannels"
@@ -50,7 +57,7 @@ import type { Channel, ChannelType } from '@vpwa/shared';
 import { ref, watch } from 'vue';
 
 const { currentUser, logout } = useAuth();
-const { updateStatus } = useUserActions();
+const { updateStatus, updateMentionOnlyNotif } = useUserActions();
 const {
   channels,
   invitedChannels,
@@ -65,6 +72,17 @@ const showCreateChannel = ref(false);
 const createChannelError = ref('');
 const inviteError = ref<string | null>(null);
 const processingInviteId = ref<string | null>(null);
+const notificationError = ref<string | null>(null);
+
+async function handleNotificationChange(mentionsOnly: boolean): Promise<void> {
+  notificationError.value = null;
+  try {
+    await updateMentionOnlyNotif(mentionsOnly);
+  } catch (error) {
+    notificationError.value =
+      error instanceof Error ? error.message : 'Failed to update notifications';
+  }
+}
 
 async function processInviteResponse(inviteId: string, action: 'accept' | 'reject'): Promise<void> {
   if (processingInviteId.value) return;

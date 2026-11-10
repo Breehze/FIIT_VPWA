@@ -1,5 +1,6 @@
 import { Exception } from '@adonisjs/core/exceptions'
 import app from '@adonisjs/core/services/app'
+import db from '@adonisjs/lucid/services/db'
 import socket from '@rlanz/socket/services/main'
 import Channel from '#models/channel'
 import User from '#models/user'
@@ -9,6 +10,7 @@ import VoteKick from '#models/vote_kick'
 import Msg from '#models/msg'
 
 export type ChannelType = 'public' | 'private'
+export type KickVoteProgress = { targetId: string; nick: string; votes: number; votedByMe: boolean }
 
 const KICK_VOTE_THRESHOLD = 3
 
@@ -50,6 +52,23 @@ export default class ChannelService {
     await UserChannel.requireActiveForUser(channel.id, userId)
 
     return User.listActiveChannelMembers(channel.id)
+  }
+
+  async listKickVotes(userId: string, channelId: string): Promise<KickVoteProgress[]> {
+    const channel = await Channel.findOrFail(channelId)
+    await UserChannel.requireActiveForUser(channel.id, userId)
+    if (channel.type !== 'public') return []
+
+    const votes = await VoteKick.query()
+      .where('channelId', channelId)
+      .preload('target')
+      .preload('voters')
+    return votes.map((vote) => ({
+      targetId: vote.targetId,
+      nick: vote.target.nick,
+      votes: vote.voters.length,
+      votedByMe: vote.voters.some((voter) => voter.userId === userId),
+    }))
   }
 
   /**
@@ -220,26 +239,40 @@ export default class ChannelService {
       throw new Exception('You cannot kick the channel owner', { status: 403 })
     }
 
-    const targetMembership = await UserChannel.requireActiveForUser(channel.id, targetUser.id, 404)
+    const result = await db.transaction(async (trx) => {
+      // Serialize votes for a channel, including vote creation and the final ban.
+      await Channel.query({ client: trx }).where('id', channel.id).forUpdate().firstOrFail()
+      const voter = await UserChannel.findForUser(channel.id, userId, trx)
+      if (!voter || voter.banned) {
+        throw new Exception('You must be a member of this channel', { status: 403 })
+      }
+      const target = await UserChannel.findForUser(channel.id, targetUser.id, trx)
+      if (!target || target.banned) {
+        throw new Exception('User is not an active member of this channel', { status: 404 })
+      }
 
-    if (channel.owner === userId) {
-      await targetMembership.markBanned()
-      await VoteKick.clearForTarget(channel.id, targetUser.id)
+      if (channel.owner === userId) {
+        target.useTransaction(trx)
+        await target.markBanned()
+        await VoteKick.clearForTarget(channel.id, targetUser.id, trx)
+        return { banned: true, votes: KICK_VOTE_THRESHOLD }
+      }
+
+      const votes = await VoteKick.addVoteAndCount(channel.id, targetUser.id, userId, trx)
+      if (votes >= KICK_VOTE_THRESHOLD) {
+        target.useTransaction(trx)
+        await target.markBanned()
+        await VoteKick.clearForTarget(channel.id, targetUser.id, trx)
+      }
+      return { banned: votes >= KICK_VOTE_THRESHOLD, votes }
+    })
+
+    socket.to(`channels/${channel.id}`).emit('kick:updated', { channelId: channel.id })
+    if (result.banned) {
       notifyChannelChange(targetUser.id, channel.id)
       await disconnectSubscribers(channel.id, targetUser.id)
-      return { banned: true, votes: KICK_VOTE_THRESHOLD }
     }
-
-    const votes = await VoteKick.addVoteAndCount(channel.id, targetUser.id, userId)
-    if (votes >= KICK_VOTE_THRESHOLD) {
-      await targetMembership.markBanned()
-      await VoteKick.clearForTarget(channel.id, targetUser.id)
-      notifyChannelChange(targetUser.id, channel.id)
-      await disconnectSubscribers(channel.id, targetUser.id)
-      return { banned: true, votes }
-    }
-
-    return { banned: false, votes }
+    return result
   }
 
   /**

@@ -38,8 +38,7 @@
     </q-list>
 
     <div class="q-pa-md">
-      <TypingIndicator />
-
+      <TypingIndicator :typers="[]" />
       <q-input
         class="q-mb-sm q-mx-sm q-py-xs cmd"
         v-model="typed"
@@ -104,8 +103,12 @@ async function onSubmit(): Promise<void> {
     }
   } else {
     commandError.value = null;
-    sendMsg(inputMsg);
-    typed.value = '';
+    try {
+      await sendMsg(inputMsg);
+      typed.value = '';
+    } catch (err) {
+      commandError.value = err instanceof Error ? err.message : 'Failed to send message';
+    }
   }
 }
 

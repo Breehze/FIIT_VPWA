@@ -34,6 +34,7 @@ router
 
     router.get('/channels', [ChannelsController, 'index'])
     router.get('/channels/:channelId/members', [ChannelsController, 'members'])
+    router.get('/channels/:channelId/kick-votes', [ChannelsController, 'kickVotes'])
     router.get('/channels/:channelId/msgs', [ChannelsController, 'messages'])
     router.post('/channels/create', [ChannelsController, 'create'])
     router.post('/channels/join', [ChannelsController, 'join'])

@@ -1,17 +1,12 @@
-import { reactive, computed, ref } from 'vue';
+import { reactive, computed } from 'vue';
 import { useQuasar } from 'quasar';
-import { DEFAULT_UNREAD_COUNTS } from '@/mocks';
 import { useAuth } from '@/composables/useAuth';
 
-const unreadCounts = reactive<Record<string, number>>({
-  ...DEFAULT_UNREAD_COUNTS,
-});
+const unreadCounts = reactive<Record<string, number>>({});
 
 const totalUnreadCount = computed(() =>
   Object.values(unreadCounts).reduce((total, count) => total + count, 0),
 );
-
-const mentionsOnly = ref(false);
 
 export function useNotifications() {
   const $q = useQuasar();
@@ -37,58 +32,20 @@ export function useNotifications() {
     delete unreadCounts[channelId];
   }
 
-  async function requestNotificationPermission(): Promise<boolean> {
-    if (typeof window === 'undefined' || !('Notification' in window)) {
-      return false;
+  function notifyIncomingMessage(
+    senderId: string | null,
+    senderName: string,
+    messageText: string,
+  ): void {
+    const user = currentUser.value;
+    if (!user || senderId === user.id || user.state !== 'Online' || $q.appVisible) return;
+    if (user.mentionOnlyNotif) {
+      const escapedNick = user.nick.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      if (!new RegExp(`(^|[^\\w])@${escapedNick}(?![\\w-])`, 'i').test(messageText)) return;
     }
-
-    if (Notification.permission === 'granted') {
-      return true;
-    }
-
-    if (Notification.permission === 'denied') {
-      return false;
-    }
-
-    const permission = await Notification.requestPermission();
-    return permission === 'granted';
-  }
-
-  function isMentioned(message: string, nick: string): boolean {
-    const escapedNick = nick.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const regex = new RegExp(`(^|[^\\w])@${escapedNick}(?!\\w)`, 'i');
-
-    return regex.test(message);
-  }
-
-  function notifyIncomingMessage(senderId: string, senderName: string, messageText: string): void {
-    if (!currentUser.value || senderId === currentUser.value.id) {
-      return;
-    }
-
-    if (currentUser.value.state !== 'Online') {
-      return;
-    }
-
-    if ($q.appVisible) {
-      return;
-    }
-
-    if (mentionsOnly.value && !isMentioned(messageText, currentUser.value.nick)) {
-      return;
-    }
-
-    if (typeof window === 'undefined' || !('Notification' in window)) {
-      return;
-    }
-
-    if (Notification.permission !== 'granted') {
-      return;
-    }
-
-    new Notification(`New message from ${senderName}`, {
-      body: messageText.slice(0, 100),
-    });
+    if (typeof window === 'undefined' || !('Notification' in window)) return;
+    if (Notification.permission !== 'granted') return;
+    new Notification(`New message from ${senderName}`, { body: messageText.slice(0, 100) });
   }
 
   return {
@@ -98,8 +55,6 @@ export function useNotifications() {
     addUnreadMessage,
     removeChannelNotifications,
     totalUnreadCount,
-    mentionsOnly,
-    requestNotificationPermission,
     notifyIncomingMessage,
   };
 }

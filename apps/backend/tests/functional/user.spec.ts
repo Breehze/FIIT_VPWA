@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto'
 import { test } from '@japa/runner'
 import testUtils from '@adonisjs/core/services/test_utils'
+import socket from '@rlanz/socket/services/main'
 import User from '#models/user'
 
 test.group('User endpoints (/user)', (group) => {
@@ -28,28 +29,36 @@ test.group('User endpoints (/user)', (group) => {
   })
 
   test('POST /user/set_status updates the user status', async ({ client, assert }) => {
-    const user = await User.create({
-      id: randomUUID(),
-      name: 'Test',
-      lastName: 'User',
-      nick: `status_${Date.now()}`,
-      email: `status_${Date.now()}@example.com`,
-      password: 'password123',
-      state: 'Online',
-      mentionOnlyNotif: false,
-    })
+    const broadcast = socket.fake()
+    try {
+      const user = await User.create({
+        id: randomUUID(),
+        name: 'Test',
+        lastName: 'User',
+        nick: `status_${Date.now()}`,
+        email: `status_${Date.now()}@example.com`,
+        password: 'password123',
+        state: 'Online',
+        mentionOnlyNotif: false,
+      })
 
-    const response = await client
-      .post('/user/set_status')
-      .withGuard('web')
-      .loginAs(user)
-      .json({ status: 'DND' })
+      const response = await client
+        .post('/user/set_status')
+        .withGuard('web')
+        .loginAs(user)
+        .json({ status: 'DND' })
 
-    response.assertStatus(200)
-    assert.equal(response.body().state, 'DND')
+      response.assertStatus(200)
+      assert.equal(response.body().state, 'DND')
 
-    await user.refresh()
-    assert.equal(user.state, 'DND')
+      await user.refresh()
+      assert.equal(user.state, 'DND')
+      broadcast.assertEmittedTo('users/online', 'user:status', {
+        data: { userId: user.id, state: 'DND' },
+      })
+    } finally {
+      broadcast.restore()
+    }
   })
 
   test('POST /user/set_status rejects invalid status values', async ({ client }) => {
