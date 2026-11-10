@@ -32,13 +32,6 @@ export function useNotifications() {
     delete unreadCounts[channelId];
   }
 
-  async function requestNotificationPermission(): Promise<boolean> {
-    if (typeof window === 'undefined' || !('Notification' in window)) return false;
-    if (Notification.permission === 'granted') return true;
-    if (Notification.permission === 'denied') return false;
-    return (await Notification.requestPermission()) === 'granted';
-  }
-
   function notifyIncomingMessage(
     senderId: string | null,
     senderName: string,
@@ -62,7 +55,6 @@ export function useNotifications() {
     addUnreadMessage,
     removeChannelNotifications,
     totalUnreadCount,
-    requestNotificationPermission,
     notifyIncomingMessage,
   };
 }

@@ -77,7 +77,7 @@
           </q-list>
         </q-btn-dropdown>
       </div>
-      <div class="notification-setting row items-start no-wrap q-mt-sm q-pa-sm">
+      <div class="notification-setting q--avoid-card-border row items-start no-wrap q-mt-sm q-pa-sm">
         <div class="notification-icon flex flex-center q-pa-xs q-mr-sm">
           <q-icon name="notifications_none" size="16px" />
         </div>
@@ -95,14 +95,6 @@
           @update:model-value="emit('notificationChange', Boolean($event))"
         />
       </div>
-      <q-btn
-        class="full-width q-mt-sm"
-        label="Enable notifications"
-        color="primary"
-        no-caps
-        outline
-        @click="requestNotificationPermission"
-      />
     </q-card>
   </div>
 </template>
@@ -110,9 +102,6 @@
 <script setup lang="ts">
 import type { User, UserState } from '@vpwa/shared';
 import { computed } from 'vue';
-import { useNotifications } from '@/composables/useNotifications';
-
-const { requestNotificationPermission } = useNotifications();
 
 const props = defineProps<{
   user: User | null;
