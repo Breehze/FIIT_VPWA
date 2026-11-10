@@ -1,4 +1,6 @@
 import { Exception } from '@adonisjs/core/exceptions'
+import app from '@adonisjs/core/services/app'
+import socket from '@rlanz/socket/services/main'
 import Channel from '#models/channel'
 import User from '#models/user'
 import UserChannel from '#models/user_channel'
@@ -10,7 +12,29 @@ export type ChannelType = 'public' | 'private'
 
 const KICK_VOTE_THRESHOLD = 3
 
+function notifyChannelChange(userId: string, channelId: string) {
+  socket.to(`user/${userId}`).emit('channels:changed', { channelId })
+}
+
+async function disconnectSubscribers(channelId: string, userId?: string) {
+  const presence = await app.container.make('socket.presence')
+  const channel = `channels/${channelId}`
+
+  for (const raw of presence.getLocalSockets(channel)) {
+    if (!userId || presence.getLocalUser(channel, raw.id)?.id === userId) {
+      socket.getSocket(raw.id)?.disconnect()
+    }
+  }
+}
+
 export default class ChannelService {
+  private async deleteAndNotify(channel: Channel) {
+    const members = await UserChannel.query().where('channelId', channel.id).where('banned', false)
+    await channel.deleteWithRelations()
+    for (const member of members) notifyChannelChange(member.userId, channel.id)
+    await disconnectSubscribers(channel.id)
+  }
+
   /**
    * GET /channels
    */
@@ -51,13 +75,15 @@ export default class ChannelService {
 
     if (existing) {
       if (existing.isExpired()) {
-        await existing.deleteWithRelations()
+        await this.deleteAndNotify(existing)
       } else {
         throw new Exception(`Channel #${existing.name} already exists`, { status: 409 })
       }
     }
 
-    return Channel.createWithOwner(userId, rawName, type)
+    const channel = await Channel.createWithOwner(userId, rawName, type)
+    notifyChannelChange(userId, channel.id)
+    return channel
   }
 
   /**
@@ -71,7 +97,7 @@ export default class ChannelService {
     }
 
     if (channel.isExpired()) {
-      await channel.deleteWithRelations()
+      await this.deleteAndNotify(channel)
       throw new Exception('Channel not found', { status: 404 })
     }
 
@@ -88,6 +114,7 @@ export default class ChannelService {
     }
 
     await UserChannel.addMember(channel.id, userId)
+    notifyChannelChange(userId, channel.id)
     return channel
   }
 
@@ -99,11 +126,13 @@ export default class ChannelService {
     const membership = await UserChannel.requireActiveForUser(channel.id, userId)
 
     if (channel.owner === userId) {
-      await channel.deleteWithRelations()
+      await this.deleteAndNotify(channel)
       return
     }
 
     await membership.delete()
+    notifyChannelChange(userId, channel.id)
+    await disconnectSubscribers(channel.id, userId)
   }
 
   /**
@@ -128,6 +157,8 @@ export default class ChannelService {
 
     const targetMembership = await UserChannel.requireActiveForUser(channel.id, targetUser.id, 404)
     await targetMembership.delete()
+    notifyChannelChange(targetUser.id, channel.id)
+    await disconnectSubscribers(channel.id, targetUser.id)
   }
 
   /**
@@ -159,7 +190,9 @@ export default class ChannelService {
       await VoteKick.clearForTarget(channel.id, targetUser.id)
     }
 
-    return Invite.findOrCreatePending(channel.id, userId, targetUser.id)
+    const invite = await Invite.findOrCreatePending(channel.id, userId, targetUser.id)
+    socket.to(`user/${invite.inviteeId}`).emit('invite:created', invite.serialize())
+    return invite
   }
 
   /**
@@ -192,6 +225,8 @@ export default class ChannelService {
     if (channel.owner === userId) {
       await targetMembership.markBanned()
       await VoteKick.clearForTarget(channel.id, targetUser.id)
+      notifyChannelChange(targetUser.id, channel.id)
+      await disconnectSubscribers(channel.id, targetUser.id)
       return { banned: true, votes: KICK_VOTE_THRESHOLD }
     }
 
@@ -199,6 +234,8 @@ export default class ChannelService {
     if (votes >= KICK_VOTE_THRESHOLD) {
       await targetMembership.markBanned()
       await VoteKick.clearForTarget(channel.id, targetUser.id)
+      notifyChannelChange(targetUser.id, channel.id)
+      await disconnectSubscribers(channel.id, targetUser.id)
       return { banned: true, votes }
     }
 
@@ -215,6 +252,6 @@ export default class ChannelService {
       throw new Exception('Only the channel owner can delete this channel', { status: 403 })
     }
 
-    await channel.deleteWithRelations()
+    await this.deleteAndNotify(channel)
   }
 }
