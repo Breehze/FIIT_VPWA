@@ -1,15 +1,23 @@
 <template>
   <q-page class="column" style="height: 100vh; overflow: hidden">
-    <ChannelHeader :channel="activeChannel" />
-    <q-separator class="separator"></q-separator>
-    <ChatFeed class="q-pt-md" />
+    <template v-if="activeChannel">
+      <ChannelHeader :channel="activeChannel" />
+      <q-separator class="separator" />
+    </template>
+    <div v-if="channelsLoaded && !activeChannel" class="empty-chat col flex flex-center q-pa-lg">
+      <div class="text-center">
+        <div class="text-h6">No channels yet 🌸</div>
+        <p class="q-mt-sm">Use <code>/join channelName</code> to start chatting.</p>
+      </div>
+    </div>
+    <ChatFeed v-else class="q-pt-md" />
     <CmdLine />
 
     <Teleport to="#left-drawer" v-if="isMounted">
       <LeftSidebar />
     </Teleport>
 
-    <Teleport to="#right-drawer" v-if="isMounted">
+    <Teleport to="#right-drawer" v-if="isMounted && activeChannel">
       <RightSidebar />
     </Teleport>
   </q-page>
@@ -32,6 +40,7 @@ const isMounted = ref(false);
 const { currentUser } = useAuth();
 const {
   activeChannel,
+  channelsLoaded,
   channels,
   refreshChannels,
   refreshMembers,
@@ -77,3 +86,17 @@ onMounted(() => {
   isMounted.value = true;
 });
 </script>
+
+<style scoped lang="scss">
+.empty-chat {
+  background: $lilac-50;
+  color: $lilac-700;
+}
+
+.empty-chat code {
+  color: $lilac-800;
+  background: $lilac-150;
+  border-radius: 6px;
+  padding: 2px 6px;
+}
+</style>

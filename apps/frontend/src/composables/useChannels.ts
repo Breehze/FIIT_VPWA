@@ -10,6 +10,7 @@ import { useNotifications } from '@/composables/useNotifications';
 import { realtimeSocketService } from '@/services/realtimeSocket.service';
 
 const channels = ref<Channel[]>([]);
+const loadedChannelsForUserId = ref<string | null>(null);
 const invitedChannels = ref<InvitedChannel[]>([]);
 const activeChannelId = ref<string | null>(null);
 const membersByChannel = ref<Record<string, User[]>>({});
@@ -41,6 +42,10 @@ watch(activeChannelId, (id) => {
 export function useChannels() {
   const { currentUser } = useAuth();
   const { removeChannelNotifications } = useNotifications();
+
+  const channelsLoaded = computed(
+    () => !!currentUser.value && loadedChannelsForUserId.value === currentUser.value.id,
+  );
 
   watch(
     () => currentUser.value?.id,
@@ -111,6 +116,7 @@ export function useChannels() {
 
     if (!userId) {
       channels.value = [];
+      loadedChannelsForUserId.value = null;
       activeChannelId.value = null;
       membersByChannel.value = {};
       onlineUserIds.value = new Set();
@@ -126,6 +132,7 @@ export function useChannels() {
     }
 
     channels.value = updatedChannels;
+    loadedChannelsForUserId.value = userId;
     const activeIds = new Set(updatedChannels.map((channel) => channel.id));
     membersByChannel.value = Object.fromEntries(
       Object.entries(membersByChannel.value).filter(([id]) => activeIds.has(id)),
@@ -272,6 +279,7 @@ export function useChannels() {
 
   return {
     channels,
+    channelsLoaded,
     invitedChannels,
     setInvites: (invites: InvitedChannel[]) => {
       invitedChannels.value = invites;
