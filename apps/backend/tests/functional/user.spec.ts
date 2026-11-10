@@ -77,7 +77,7 @@ test.group('User endpoints (/user)', (group) => {
       .post('/user/set_status')
       .withGuard('web')
       .loginAs(user)
-      .json({ status: 'Busy' })
+      .json({ status: 'Busy' as never })
 
     response.assertStatus(422)
   })

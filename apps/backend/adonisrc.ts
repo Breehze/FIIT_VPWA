@@ -56,6 +56,14 @@ export default defineConfig({
       file: () => import('@rlanz/socket/provider'),
       environment: ['web', 'test'],
     },
+    {
+      file: () => import('adonisjs-scheduler/scheduler_provider'),
+      environment: ['web', 'test'],
+    },
+    {
+      file: () => import('#providers/channel_cleanup_provider'),
+      environment: ['web'],
+    },
     () => import('#providers/api_provider'),
   ],
 
@@ -71,6 +79,10 @@ export default defineConfig({
     () => import('#start/routes'),
     () => import('#start/kernel'),
     () => import('#start/validator'),
+    {
+      file: () => import('#start/scheduler'),
+      environment: ['web', 'test'],
+    },
   ],
 
   /*
