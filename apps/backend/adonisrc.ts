@@ -57,6 +57,10 @@ export default defineConfig({
       environment: ['web', 'test'],
     },
     {
+      file: () => import('adonisjs-scheduler/scheduler_provider'),
+      environment: ['web', 'test'],
+    },
+    {
       file: () => import('#providers/channel_cleanup_provider'),
       environment: ['web'],
     },
@@ -75,6 +79,10 @@ export default defineConfig({
     () => import('#start/routes'),
     () => import('#start/kernel'),
     () => import('#start/validator'),
+    {
+      file: () => import('#start/scheduler'),
+      environment: ['web', 'test'],
+    },
   ],
 
   /*

@@ -45,7 +45,6 @@ export default class ChannelService {
         .forUpdate()
         .first()
 
-      // A different worker may have removed it, or a new message may have reset its activity.
       if (!channel || channel.lastActivity >= cutoff) return null
 
       const members = await UserChannel.query({ client: trx })
@@ -62,7 +61,6 @@ export default class ChannelService {
     return true
   }
 
-  /** Remove channels with no new messages for more than 30 days. Safe to run from multiple servers. */
   async pruneExpiredChannels(now = DateTime.now()): Promise<number> {
     const cutoff = now.minus({ days: 30 })
     let lastId: string | undefined
@@ -146,7 +144,6 @@ export default class ChannelService {
     if (existing) {
       if (existing.isExpired()) {
         await this.removeIfExpired(existing.id, DateTime.now().minus({ days: 30 }))
-        // Another request may have created or refreshed this channel in the meantime.
         const current = await Channel.findByName(rawName)
         if (current) {
           throw new Exception(`Channel #${current.name} already exists`, { status: 409 })

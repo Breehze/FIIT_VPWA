@@ -68,6 +68,7 @@
     "@rlanz/socket": "^0.2.4",
     "@tuyau/core": "^1.2.2",
     "@vinejs/vine": "^4.4.0",
+    "adonisjs-scheduler": "^2.8.0",
     "better-sqlite3": "^13.0.3",
     "luxon": "^3.7.2",
     "pg": "^8.23.1",

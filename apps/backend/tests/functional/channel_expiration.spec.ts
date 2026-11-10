@@ -53,7 +53,6 @@ test.group('Inactive channel cleanup', (group) => {
     await expired.merge({ lastActivity: DateTime.now().minus({ days: 31 }) }).save()
     await active.merge({ lastActivity: DateTime.now().minus({ days: 29 }) }).save()
 
-    // Expired channels disappear from user lists even before the hourly sweep runs.
     const visibleChannels = await Channel.listForUser(owner.id)
     assert.deepEqual(
       visibleChannels.map((channel) => channel.id),
@@ -113,9 +112,8 @@ test.group('Inactive channel cleanup', (group) => {
 
     try {
       const pruning = new ChannelService().pruneExpiredChannels()
-      await entered.promise // The sweep has already selected this room as expired.
+      await entered.promise
 
-      // Simulate a committed message updating activity while the sweep is in flight.
       await Msg.create({
         channelId: room.id,
         senderId: owner.id,

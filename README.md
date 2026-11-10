@@ -59,15 +59,6 @@
 
 ## Getting Started
 
-### Inactive channel cleanup
-
-The backend checks for channels with no new messages for more than 30 days when the web
-server starts and once per hour while it is running. It deletes their messages,
-memberships, invitations, and kick votes, notifies connected members, and frees the
-channel name for reuse. Expired channels are hidden from channel lists and cannot
-receive new socket messages even before the next sweep. The server must be running
-for the scheduled cleanup to execute; an offline server catches up on startup.
-
 ```bash
 # Install dependencies
 pnpm install

@@ -1,70 +1,39 @@
 import { mock } from 'node:test'
 import { test } from '@japa/runner'
+import { Worker } from 'adonisjs-scheduler'
+import scheduler from 'adonisjs-scheduler/services/main'
 import ChannelService from '#services/channel_service'
 import ChannelCleanupProvider from '#providers/channel_cleanup_provider'
 
 test.group('Channel cleanup scheduler', () => {
-  test('runs at startup and hourly, skips overlapping sweeps, and stops on shutdown', async ({
-    assert,
-  }) => {
-    let scheduled: (() => void) | undefined
-    let intervalMs: number | undefined
-    let unrefCalled = false
-    let cleared = false
-    const timer = {
-      unref: () => {
-        unrefCalled = true
-      },
-    } as ReturnType<typeof setInterval>
-    const interval = mock.method(globalThis, 'setInterval', (callback: () => void, ms: number) => {
-      scheduled = callback as () => void
-      intervalMs = ms
-      return timer
-    })
-    const clear = mock.method(
-      globalThis,
-      'clearInterval',
-      (handle: ReturnType<typeof setInterval>) => {
-        assert.equal(handle, timer)
-        cleared = true
-      }
-    )
+  test('runs on startup and hourly without overlapping', async ({ assert }) => {
+    const job = scheduler.items.find((item) => item.type === 'callback')
+    assert.isDefined(job)
+    assert.equal(job?.getExpression(), '0 0 * * * *')
+    assert.isTrue(job?.config.immediate)
+    assert.isTrue(job?.config.withoutOverlapping)
 
-    let completeFirstRun: ((value: number) => void) | undefined
-    let runs = 0
-    const cleanup = mock.method(ChannelService.prototype, 'pruneExpiredChannels', () => {
-      runs++
-      if (runs === 1) {
-        return new Promise<number>((resolve) => {
-          completeFirstRun = resolve
-        })
-      }
-      return Promise.resolve(0)
-    })
-    const provider = new ChannelCleanupProvider()
-
+    const cleanup = mock.method(ChannelService.prototype, 'pruneExpiredChannels', async () => 1)
     try {
-      provider.ready()
-      assert.equal(intervalMs, 60 * 60 * 1000)
-      assert.isTrue(unrefCalled)
-      assert.equal(runs, 1)
-
-      scheduled?.()
-      assert.equal(runs, 1, 'a scheduled sweep cannot overlap the startup sweep')
-
-      completeFirstRun?.(0)
-      await new Promise<void>((resolve) => setImmediate(resolve))
-      scheduled?.()
-      assert.equal(runs, 2)
-
-      provider.shutdown()
-      assert.isTrue(cleared)
+      if (job?.type === 'callback') await job.callback()
+      assert.equal(cleanup.mock.callCount(), 1)
     } finally {
-      completeFirstRun?.(0)
-      provider.shutdown()
       cleanup.mock.restore()
-      clear.mock.restore()
-      interval.mock.restore()
+    }
+  })
+
+  test('starts the worker with the web server and stops it on shutdown', async ({ assert }) => {
+    const start = mock.method(Worker.prototype, 'start', async () => {})
+    const stop = mock.method(Worker.prototype, 'stop', async () => {})
+    try {
+      const provider = new ChannelCleanupProvider()
+      await provider.ready()
+      await provider.shutdown()
+      assert.equal(start.mock.callCount(), 1)
+      assert.equal(stop.mock.callCount(), 1)
+    } finally {
+      start.mock.restore()
+      stop.mock.restore()
     }
   })
 })

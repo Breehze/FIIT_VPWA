@@ -71,7 +71,6 @@ export default class MessagesChannel extends BaseChannel<User, LiveEvents> {
     }
 
     const message = await db.transaction(async (trx) => {
-      // Serialize sends with expiry cleanup so an expired channel cannot be revived.
       const channel = await Channel.query({ client: trx })
         .where('id', channelId)
         .forUpdate()
