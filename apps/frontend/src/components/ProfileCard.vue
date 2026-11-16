@@ -77,7 +77,9 @@
           </q-list>
         </q-btn-dropdown>
       </div>
-      <div class="notification-setting q--avoid-card-border row items-start no-wrap q-mt-sm q-pa-sm">
+      <div
+        class="notification-setting q--avoid-card-border row items-start no-wrap q-mt-sm q-pa-sm"
+      >
         <div class="notification-icon flex flex-center q-pa-xs q-mr-sm">
           <q-icon name="notifications_none" size="16px" />
         </div>
@@ -95,13 +97,37 @@
           @update:model-value="emit('notificationChange', Boolean($event))"
         />
       </div>
+      <div
+        v-if="notificationPermission === 'default'"
+        class="notification-setting q--avoid-card-border row items-center no-wrap q-mt-sm q-pa-sm"
+      >
+        <div class="notification-icon flex flex-center q-pa-xs q-mr-sm">
+          <q-icon name="notifications_active" size="16px" />
+        </div>
+
+        <div class="notification-text col">
+          <div class="text-weight-medium">Browser notifications</div>
+          <div class="notification-caption">Get notified about new messages.</div>
+        </div>
+
+        <q-btn
+          class="enable-notifications-btn q-ml-sm"
+          label="Enable"
+          color="primary"
+          size="sm"
+          no-caps
+          unelevated
+          :loading="enablingNotifications"
+          @click="enableNotifications"
+        />
+      </div>
     </q-card>
   </div>
 </template>
 
 <script setup lang="ts">
 import type { User, UserState } from '@vpwa/shared';
-import { computed } from 'vue';
+import { computed, ref, onMounted, onUnmounted } from 'vue';
 
 const props = defineProps<{
   user: User | null;
@@ -123,6 +149,40 @@ const emit = defineEmits<{
   (e: 'statusChange', status: UserState): void;
   (e: 'notificationChange', mentionsOnly: boolean): void;
 }>();
+
+const notificationPermission = ref<NotificationPermission | 'unsupported'>('unsupported');
+const enablingNotifications = ref(false);
+
+function checkNotificationPermission(): void {
+  if (typeof window === 'undefined' || !('Notification' in window)) {
+    notificationPermission.value = 'unsupported';
+    return;
+  }
+
+  notificationPermission.value = Notification.permission;
+}
+
+async function enableNotifications(): Promise<void> {
+  if (notificationPermission.value !== 'default') return;
+
+  enablingNotifications.value = true;
+
+  try {
+    notificationPermission.value = await Notification.requestPermission();
+  } finally {
+    enablingNotifications.value = false;
+    checkNotificationPermission();
+  }
+}
+
+onMounted(() => {
+  checkNotificationPermission();
+  window.addEventListener('focus', checkNotificationPermission);
+});
+
+onUnmounted(() => {
+  window.removeEventListener('focus', checkNotificationPermission);
+});
 </script>
 
 <style scoped lang="scss">
@@ -194,6 +254,10 @@ const emit = defineEmits<{
 .notification-caption {
   color: gray;
   font-size: 11px;
+}
+
+.enable-notifications-btn {
+  border-radius: 10px;
 }
 </style>
 

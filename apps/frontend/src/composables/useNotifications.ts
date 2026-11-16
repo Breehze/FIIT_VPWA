@@ -38,14 +38,36 @@ export function useNotifications() {
     messageText: string,
   ): void {
     const user = currentUser.value;
-    if (!user || senderId === user.id || user.state !== 'Online' || $q.appVisible) return;
+
+    if (!user) return;
+
+    if (senderId === user.id) return;
+
+    if (user.state !== 'Online') return;
+
+    if ($q.appVisible) return;
+
     if (user.mentionOnlyNotif) {
       const escapedNick = user.nick.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      if (!new RegExp(`(^|[^\\w])@${escapedNick}(?![\\w-])`, 'i').test(messageText)) return;
+
+      const mentionPattern = new RegExp(`(^|[^\\w])@${escapedNick}(?![\\w-])`, 'i');
+
+      if (!mentionPattern.test(messageText)) return;
     }
-    if (typeof window === 'undefined' || !('Notification' in window)) return;
+
+    if (typeof window === 'undefined' || !('Notification' in window)) {
+      return;
+    }
+
     if (Notification.permission !== 'granted') return;
-    new Notification(`New message from ${senderName}`, { body: messageText.slice(0, 100) });
+
+    try {
+      new Notification(`New message from ${senderName}`, {
+        body: messageText.slice(0, 100),
+      });
+    } catch (error) {
+      console.error('Failed to display notification:', error);
+    }
   }
 
   return {
