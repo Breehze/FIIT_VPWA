@@ -38,7 +38,6 @@
     </q-list>
 
     <div class="q-pa-md">
-      <TypingIndicator :typers="[]" />
       <q-input
         class="q-mb-sm q-mx-sm q-py-xs cmd"
         v-model="typed"
@@ -57,16 +56,18 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, watch, onUnmounted } from 'vue';
 import { useChat } from '@/composables/useChat';
 import { useChannels } from '@/composables/useChannels';
 import { useCommands } from '@/composables/useCommands';
 import { useAvatar } from '@/composables/useAvatar';
-import TypingIndicator from '@/components/TypingIndicator.vue';
+import { useAuth } from '@/composables/useAuth';
+import { realtimeSocketService } from '@/services/realtimeSocket.service';
 
 const { getAvatarColor } = useAvatar();
 const { sendMsg } = useChat();
-const { activeChannelMembers } = useChannels();
+const { activeChannel, activeChannelMembers } = useChannels();
+const { currentUser } = useAuth();
 const { execCommand } = useCommands();
 
 const typed = ref('');
@@ -84,6 +85,18 @@ const filteredMembers = computed(() => {
     return member.nick.startsWith(query);
   });
 });
+
+function publishTypingDraft(channelId: string, text: string): void {
+  const user = currentUser.value;
+
+  if (!user) return;
+
+  realtimeSocketService.sendTypingDraft(channelId, {
+    userId: user.id,
+    nick: user.nick,
+    text,
+  });
+}
 
 async function onSubmit(): Promise<void> {
   const inputMsg = typed.value.trim();
@@ -115,6 +128,39 @@ async function onSubmit(): Promise<void> {
 function chooseMember(nick: string) {
   typed.value = typed.value.replace(/@([a-zA-Z0-9_-]*)$/, `@${nick} `);
 }
+
+watch(
+  typed,
+  (text) => {
+    const channelId = activeChannel.value?.id;
+
+    if (!channelId) return;
+
+    const draftText = text.trimStart().startsWith('/') ? '' : text;
+
+    publishTypingDraft(channelId, draftText);
+  },
+  { flush: 'sync' },
+);
+
+watch(
+  () => activeChannel.value?.id,
+  (_newChannelId, oldChannelId) => {
+    if (oldChannelId) {
+      publishTypingDraft(oldChannelId, '');
+    }
+
+    typed.value = '';
+  },
+);
+
+onUnmounted(() => {
+  const channelId = activeChannel.value?.id;
+
+  if (channelId) {
+    publishTypingDraft(channelId, '');
+  }
+});
 </script>
 
 <style scoped lang="scss">

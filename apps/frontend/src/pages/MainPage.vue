@@ -11,6 +11,7 @@
       </div>
     </div>
     <ChatFeed v-else class="q-pt-md" />
+    <TypingStatus v-if="activeChannel" />
     <CmdLine />
 
     <Teleport to="#left-drawer" v-if="isMounted">
@@ -31,8 +32,10 @@ import ChannelHeader from '@/components/ChannelHeader.vue';
 import { useChannels } from '@/composables/useChannels';
 import ChatFeed from '@/components/ChatFeed.vue';
 import CmdLine from '@/components/CmdLine.vue';
+import TypingStatus from '@/components/TypingStatus.vue';
 import { useAuth } from '@/composables/useAuth';
 import { useChat } from '@/composables/useChat';
+import { useTyping } from '@/composables/useTyping';
 import { realtimeSocketService } from '@/services/realtimeSocket.service';
 
 const isMounted = ref(false);
@@ -50,11 +53,14 @@ const {
   setMemberStatus,
 } = useChannels();
 const { receiveMsg, loadInitialMsgs } = useChat();
+const { updateTypingDraft, clearTypingDrafts } = useTyping();
 
 watch(
   () => currentUser.value?.id,
   (userId) => {
     realtimeSocketService.stop();
+    clearTypingDrafts();
+
     if (userId) {
       realtimeSocketService.start(userId, {
         async refreshChannels() {
@@ -63,6 +69,9 @@ watch(
           return channels.value.map((channel) => channel.id);
         },
         onMessage: receiveMsg,
+        onTyping: (channelId, draft) => {
+          updateTypingDraft(channelId, draft);
+        },
         onInvites: setInvites,
         onPresence: (channelId) => void refreshMembers(channelId),
         onKickVote: (channelId) => {
@@ -80,7 +89,10 @@ watch(
   { immediate: true },
 );
 
-onUnmounted(() => realtimeSocketService.stop());
+onUnmounted(() => {
+  realtimeSocketService.stop();
+  clearTypingDrafts();
+});
 
 onMounted(() => {
   isMounted.value = true;

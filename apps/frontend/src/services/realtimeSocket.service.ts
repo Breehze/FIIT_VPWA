@@ -1,6 +1,7 @@
 import { Socket } from '@rlanz/socket/client';
 import type { Channel, Invite, Msg, UserState } from '@vpwa/shared';
 import type { InvitedChannel } from '@/services/channelActions.service';
+import type { TypingDraft } from '@/types/typing';
 
 const API_URL = 'http://localhost:3333';
 
@@ -23,6 +24,7 @@ class RealtimeSocketService {
   private onStatus: ((userId: string, state: UserState) => void) | null = null;
   private onKickVote: ((channelId: string) => void) | null = null;
   private refreshChannels: (() => Promise<string[]>) | null = null;
+  private onTyping: ((channelId: string, draft: TypingDraft) => void) | null = null;
 
   start(
     userId: string,
@@ -34,12 +36,14 @@ class RealtimeSocketService {
       onOnlineUsers: (userIds: string[]) => void;
       onStatus: (userId: string, state: UserState) => void;
       onKickVote: (channelId: string) => void;
+      onTyping: (channelId: string, draft: TypingDraft) => void;
     },
   ): void {
     this.stop();
     this.userId = userId;
     this.refreshChannels = callbacks.refreshChannels;
     this.onMessage = callbacks.onMessage;
+    this.onTyping = callbacks.onTyping;
     this.onInvites = callbacks.onInvites;
     this.onPresence = callbacks.onPresence;
     this.onOnlineUsers = callbacks.onOnlineUsers;
@@ -67,6 +71,7 @@ class RealtimeSocketService {
     this.onStatus = null;
     this.onKickVote = null;
     this.attempts = 0;
+    this.onTyping = null;
   }
 
   private scheduleRetry(generation: number): void {
@@ -154,6 +159,9 @@ class RealtimeSocketService {
       if (this.channels.has(id)) continue;
       const channel = socket.channel(`channels/${id}`);
       channel.listen<Msg>('message:created', (message) => this.onMessage?.(message));
+      channel.listenForWhisper<TypingDraft>('typing', (draft) => {
+        this.onTyping?.(id, draft);
+      });
       channel.listen<{ channelId: string }>('kick:updated', ({ channelId }) =>
         this.onKickVote?.(channelId),
       );
@@ -184,6 +192,14 @@ class RealtimeSocketService {
     const channel = this.channels.get(channelId);
     if (!channel?.active) throw new Error('Not connected to this channel');
     return channel.sendWithAck<{ text: string }, Msg>('message:send', { text });
+  }
+
+  sendTypingDraft(channelId: string, draft: TypingDraft): void {
+    const channel = this.channels.get(channelId);
+
+    if (!channel?.active) return;
+
+    channel.whisper('typing', draft);
   }
 }
 
