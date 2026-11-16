@@ -10,9 +10,11 @@ const activeMsgs = ref<Msg[]>([]);
 const hasMoreMsgs = ref(true);
 const scrollTriggers = ref(0);
 let loadVersion = 0;
+const receivedMessageKeys = new Set<string>();
+const MAX_TRACKED_MESSAGES = 1000;
 
 export function useChat() {
-  const { activeChannel, activeChannelMembers } = useChannels();
+  const { activeChannel, activeChannelMembers, refreshChannels } = useChannels();
   const { currentUser } = useAuth();
   const { addUnreadMessage, markChannelAsRead, notifyIncomingMessage } = useNotifications();
 
@@ -27,6 +29,23 @@ export function useChat() {
       }
     },
     { immediate: true },
+  );
+
+  watch(
+    () => currentUser.value?.state,
+    (newStatus, oldStatus) => {
+      if (oldStatus !== 'Offline' || newStatus !== 'Online') {
+        return;
+      }
+
+      void refreshChannels().catch((error) => {
+        console.error('Failed to refresh channels:', error);
+      });
+
+      void loadInitialMsgs().catch((error) => {
+        console.error('Failed to refresh messages:', error);
+      });
+    },
   );
 
   async function loadInitialMsgs(): Promise<void> {
@@ -90,10 +109,37 @@ export function useChat() {
   }
 
   function receiveMsg(newMsg: Msg): void {
-    const activeChannelId = activeChannel.value?.id;
+    const user = currentUser.value;
 
-    if (newMsg.senderId !== currentUser.value?.id) {
+    if (!user) return;
+
+    if (user.state === 'Offline') return;
+
+    const activeChannelId = activeChannel.value?.id;
+    const messageKey = `${user.id}:${newMsg.channelId}:${newMsg.id}`;
+
+    if (receivedMessageKeys.has(messageKey)) return;
+
+    if (
+      newMsg.channelId === activeChannelId &&
+      activeMsgs.value.some((msg) => msg.id === newMsg.id)
+    ) {
+      return;
+    }
+
+    receivedMessageKeys.add(messageKey);
+
+    if (receivedMessageKeys.size > MAX_TRACKED_MESSAGES) {
+      const oldestKey = receivedMessageKeys.values().next().value;
+
+      if (oldestKey !== undefined) {
+        receivedMessageKeys.delete(oldestKey);
+      }
+    }
+
+    if (newMsg.senderId !== user.id) {
       const sender = getSender(newMsg.senderId);
+
       notifyIncomingMessage(
         newMsg.senderId,
         sender ? `${sender.name} ${sender.lastName}`.trim() : 'Someone',
@@ -102,10 +148,9 @@ export function useChat() {
     }
 
     if (newMsg.channelId === activeChannelId) {
-      if (activeMsgs.value.some((msg) => msg.id === newMsg.id)) return;
       activeMsgs.value.push(newMsg);
       scrollTriggers.value++;
-    } else if (newMsg.senderId !== currentUser.value?.id) {
+    } else if (newMsg.senderId !== user.id) {
       addUnreadMessage(newMsg.channelId, activeChannelId);
     }
   }
