@@ -44,8 +44,8 @@ const { currentUser } = useAuth();
 const {
   activeChannel,
   channelsLoaded,
-  channels,
-  refreshChannels,
+  setChannels,
+  resetChannels,
   refreshMembers,
   refreshKickVotes,
   setInvites,
@@ -56,18 +56,25 @@ const { receiveMsg, loadInitialMsgs } = useChat();
 const { updateTypingDraft, clearTypingDrafts } = useTyping();
 
 watch(
+  () => activeChannel.value?.id,
+  (channelId) => {
+    if (!channelId) return;
+    void refreshMembers(channelId);
+    void refreshKickVotes(channelId);
+  },
+);
+
+watch(
   () => currentUser.value?.id,
   (userId) => {
     realtimeSocketService.stop();
     clearTypingDrafts();
+    resetChannels();
 
     if (userId) {
       realtimeSocketService.start(userId, {
-        async refreshChannels() {
-          await refreshChannels();
-          await loadInitialMsgs();
-          return channels.value.map((channel) => channel.id);
-        },
+        onChannels: setChannels,
+        onReconnect: () => void loadInitialMsgs(),
         onMessage: receiveMsg,
         onTyping: (channelId, draft) => {
           updateTypingDraft(channelId, draft);
@@ -92,6 +99,7 @@ watch(
 onUnmounted(() => {
   realtimeSocketService.stop();
   clearTypingDrafts();
+  resetChannels();
 });
 
 onMounted(() => {

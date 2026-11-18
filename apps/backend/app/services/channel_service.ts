@@ -9,15 +9,12 @@ import UserChannel from '#models/user_channel'
 import Invite from '#models/invite'
 import VoteKick from '#models/vote_kick'
 import Msg from '#models/msg'
+import { publishChannelSnapshot } from '#services/channel_snapshot_service'
 
 export type ChannelType = 'public' | 'private'
 export type KickVoteProgress = { targetId: string; nick: string; votes: number; votedByMe: boolean }
 
 const KICK_VOTE_THRESHOLD = 3
-
-function notifyChannelChange(userId: string, channelId: string) {
-  socket.to(`user/${userId}`).emit('channels:changed', { channelId })
-}
 
 async function disconnectSubscribers(channelId: string, userId?: string) {
   const presence = await app.container.make('socket.presence')
@@ -34,8 +31,11 @@ export default class ChannelService {
   private async deleteAndNotify(channel: Channel) {
     const members = await UserChannel.query().where('channelId', channel.id).where('banned', false)
     await channel.deleteWithRelations()
-    for (const member of members) notifyChannelChange(member.userId, channel.id)
-    await disconnectSubscribers(channel.id)
+    try {
+      await Promise.all(members.map((member) => publishChannelSnapshot(member.userId)))
+    } finally {
+      await disconnectSubscribers(channel.id)
+    }
   }
 
   private async removeIfExpired(channelId: string, cutoff: DateTime): Promise<boolean> {
@@ -56,8 +56,11 @@ export default class ChannelService {
     })
 
     if (!memberIds) return false
-    for (const userId of memberIds) notifyChannelChange(userId, channelId)
-    await disconnectSubscribers(channelId)
+    try {
+      await Promise.all(memberIds.map((userId) => publishChannelSnapshot(userId)))
+    } finally {
+      await disconnectSubscribers(channelId)
+    }
     return true
   }
 
@@ -154,7 +157,7 @@ export default class ChannelService {
     }
 
     const channel = await Channel.createWithOwner(userId, rawName, type)
-    notifyChannelChange(userId, channel.id)
+    await publishChannelSnapshot(userId)
     return channel
   }
 
@@ -189,7 +192,7 @@ export default class ChannelService {
     }
 
     await UserChannel.addMember(channel.id, userId)
-    notifyChannelChange(userId, channel.id)
+    await publishChannelSnapshot(userId)
     return channel
   }
 
@@ -206,8 +209,11 @@ export default class ChannelService {
     }
 
     await membership.delete()
-    notifyChannelChange(userId, channel.id)
-    await disconnectSubscribers(channel.id, userId)
+    try {
+      await publishChannelSnapshot(userId)
+    } finally {
+      await disconnectSubscribers(channel.id, userId)
+    }
   }
 
   /**
@@ -232,8 +238,11 @@ export default class ChannelService {
 
     const targetMembership = await UserChannel.requireActiveForUser(channel.id, targetUser.id, 404)
     await targetMembership.delete()
-    notifyChannelChange(targetUser.id, channel.id)
-    await disconnectSubscribers(channel.id, targetUser.id)
+    try {
+      await publishChannelSnapshot(targetUser.id)
+    } finally {
+      await disconnectSubscribers(channel.id, targetUser.id)
+    }
   }
 
   /**
@@ -325,8 +334,11 @@ export default class ChannelService {
 
     socket.to(`channels/${channel.id}`).emit('kick:updated', { channelId: channel.id })
     if (result.banned) {
-      notifyChannelChange(targetUser.id, channel.id)
-      await disconnectSubscribers(channel.id, targetUser.id)
+      try {
+        await publishChannelSnapshot(targetUser.id)
+      } finally {
+        await disconnectSubscribers(channel.id, targetUser.id)
+      }
     }
     return result
   }

@@ -7,6 +7,7 @@ const API_URL = 'http://localhost:3333';
 
 type SocketChannel = ReturnType<Socket['channel']>;
 type PendingInvite = Invite & { channel: Channel };
+type ChannelSnapshot = { channels: Channel[] };
 
 class RealtimeSocketService {
   private socket: Socket | null = null;
@@ -23,13 +24,16 @@ class RealtimeSocketService {
   private onOnlineUsers: ((userIds: string[]) => void) | null = null;
   private onStatus: ((userId: string, state: UserState) => void) | null = null;
   private onKickVote: ((channelId: string) => void) | null = null;
-  private refreshChannels: (() => Promise<string[]>) | null = null;
+  private onChannels: ((channels: Channel[]) => void) | null = null;
+  private onReconnect: (() => void) | null = null;
+  private hasConnected = false;
   private onTyping: ((channelId: string, draft: TypingDraft) => void) | null = null;
 
   start(
     userId: string,
     callbacks: {
-      refreshChannels: () => Promise<string[]>;
+      onChannels: (channels: Channel[]) => void;
+      onReconnect: () => void;
       onMessage: (message: Msg) => void;
       onInvites: (invites: InvitedChannel[]) => void;
       onPresence: (channelId: string) => void;
@@ -41,7 +45,8 @@ class RealtimeSocketService {
   ): void {
     this.stop();
     this.userId = userId;
-    this.refreshChannels = callbacks.refreshChannels;
+    this.onChannels = callbacks.onChannels;
+    this.onReconnect = callbacks.onReconnect;
     this.onMessage = callbacks.onMessage;
     this.onTyping = callbacks.onTyping;
     this.onInvites = callbacks.onInvites;
@@ -63,7 +68,9 @@ class RealtimeSocketService {
     this.onlineChannel = null;
     this.channels.clear();
     this.userId = null;
-    this.refreshChannels = null;
+    this.onChannels = null;
+    this.onReconnect = null;
+    this.hasConnected = false;
     this.onMessage = null;
     this.onInvites = null;
     this.onPresence = null;
@@ -84,13 +91,9 @@ class RealtimeSocketService {
   }
 
   private async reconnect(generation: number): Promise<void> {
-    if (generation !== this.generation || !this.userId || !this.refreshChannels) return;
+    if (generation !== this.generation || !this.userId) return;
     let socket: Socket | null = null;
     try {
-      // Always verify membership before creating fresh subscription intent, including after a revoke.
-      const channelIds = await this.refreshChannels();
-      if (generation !== this.generation) return;
-
       socket = new Socket({ url: API_URL, autoReconnect: false });
       this.socket = socket;
       socket.on('disconnect', () => {
@@ -120,13 +123,24 @@ class RealtimeSocketService {
       const userChannel = socket.channel(`user/${this.userId}`);
       this.userChannel = userChannel;
       userChannel.listen('invite:created', () => void this.loadInvites());
-      userChannel.listen('channels:changed', () => void this.refreshMemberships());
+      // Keep subscription changes ordered when snapshots arrive close together.
+      let pendingSync = Promise.resolve();
+      const connectedSocket = socket;
+      userChannel.listen<ChannelSnapshot>('channels:updated', ({ channels }) => {
+        if (generation !== this.generation || connectedSocket !== this.socket) return;
+        this.onChannels?.(channels);
+        const previousSync = pendingSync;
+        pendingSync = this.applySubscriptions(previousSync, connectedSocket, channels);
+      });
       await userChannel.subscribe();
       if (generation !== this.generation || socket !== this.socket) return;
+      await userChannel.sendWithAck('channels:sync');
+      await pendingSync;
+      if (generation !== this.generation || socket !== this.socket) return;
       await this.loadInvites();
-      await this.syncChannels(channelIds);
-      // Changes during connection setup must not be lost.
-      await this.refreshMemberships();
+      if (generation !== this.generation || socket !== this.socket) return;
+      if (this.hasConnected) this.onReconnect?.();
+      this.hasConnected = true;
     } catch (error) {
       if (generation !== this.generation) return;
       console.error('Socket connection failed:', error);
@@ -135,10 +149,15 @@ class RealtimeSocketService {
     }
   }
 
-  async refreshMemberships(): Promise<void> {
-    if (!this.refreshChannels) return;
+  private async applySubscriptions(
+    previousSync: Promise<void>,
+    socket: Socket,
+    channels: Channel[],
+  ): Promise<void> {
+    await previousSync;
+    if (socket !== this.socket) return;
     try {
-      await this.syncChannels(await this.refreshChannels());
+      await this.syncChannels(channels.map((channel) => channel.id));
     } catch (error) {
       console.error('Failed to synchronize channel subscriptions:', error);
     }
@@ -149,6 +168,7 @@ class RealtimeSocketService {
     if (!socket?.connected) return;
     const wanted = new Set(ids);
     for (const [id, channel] of this.channels) {
+      if (socket !== this.socket) return;
       if (!wanted.has(id)) {
         this.channels.delete(id);
         await socket.leave(channel.name);
@@ -170,18 +190,21 @@ class RealtimeSocketService {
       try {
         await channel.subscribe();
       } catch (error) {
-        this.channels.delete(id);
+        if (socket !== this.socket) return;
+        if (this.channels.get(id) === channel) this.channels.delete(id);
         console.error(`Could not subscribe to channel ${id}:`, error);
       }
     }
   }
 
   async loadInvites(): Promise<void> {
-    if (!this.userChannel?.active) return;
+    const userChannel = this.userChannel;
+    if (!userChannel?.active) return;
     try {
-      const result = await this.userChannel.sendWithAck<undefined, { invites: PendingInvite[] }>(
+      const result = await userChannel.sendWithAck<undefined, { invites: PendingInvite[] }>(
         'invites:list',
       );
+      if (userChannel !== this.userChannel) return;
       this.onInvites?.(result.invites.map((invite) => ({ invite, channel: invite.channel })));
     } catch (error) {
       console.error('Failed to load invitations:', error);
