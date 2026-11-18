@@ -14,7 +14,7 @@ const receivedMessageKeys = new Set<string>();
 const MAX_TRACKED_MESSAGES = 1000;
 
 export function useChat() {
-  const { activeChannel, activeChannelMembers, refreshChannels } = useChannels();
+  const { activeChannel, activeChannelMembers } = useChannels();
   const { currentUser } = useAuth();
   const { addUnreadMessage, markChannelAsRead, notifyIncomingMessage } = useNotifications();
 
@@ -37,10 +37,6 @@ export function useChat() {
       if (oldStatus !== 'Offline' || newStatus !== 'Online') {
         return;
       }
-
-      void refreshChannels().catch((error) => {
-        console.error('Failed to refresh channels:', error);
-      });
 
       void loadInitialMsgs().catch((error) => {
         console.error('Failed to refresh messages:', error);

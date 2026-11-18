@@ -355,7 +355,9 @@ test.group('Channels endpoints (/channels)', (group) => {
         .loginAs(owner)
         .json({ nick: member.nick })
       revokeRes.assertStatus(200)
-      broadcast.assertEmittedTo(`user/${member.id}`, 'channels:changed', { data: { channelId } })
+      broadcast.assertEmittedTo(`user/${member.id}`, 'channels:updated', {
+        data: { channels: [] },
+      })
       assert.equal(disconnect.mock.callCount(), 1)
     } finally {
       broadcast.restore()

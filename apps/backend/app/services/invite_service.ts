@@ -1,6 +1,6 @@
 import { Exception } from '@adonisjs/core/exceptions'
 import db from '@adonisjs/lucid/services/db'
-import socket from '@rlanz/socket/services/main'
+import { publishChannelSnapshot } from '#services/channel_snapshot_service'
 import type User from '#models/user'
 import Invite from '#models/invite'
 import UserChannel from '#models/user_channel'
@@ -45,7 +45,7 @@ export default class InviteService {
     })
 
     if (action === 'accept') {
-      socket.to(`user/${userId}`).emit('channels:changed', { channelId: result.channelId })
+      await publishChannelSnapshot(userId)
     }
 
     return result

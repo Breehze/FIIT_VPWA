@@ -31,6 +31,34 @@ async function createUser(): Promise<User> {
 test.group('Socket messages', (group) => {
   group.each.setup(() => testUtils.db().withGlobalTransaction())
 
+  test('channel sync publishes only the authenticated users current memberships', async ({
+    assert,
+  }) => {
+    const owner = await createUser()
+    const outsider = await createUser()
+    const room = await Channel.createWithOwner(owner.id, `snapshot-${randomUUID()}`, 'public')
+    await Channel.createWithOwner(outsider.id, `private-${randomUUID()}`, 'private')
+    const channel = new UserUpdatesChannel()
+    channel.$setContext(
+      { to: () => ({ emit: () => {}, except: () => ({ emit: () => {} }) }) },
+      `user/${owner.id}`,
+      { userId: owner.id }
+    )
+    const broadcast = socketService.fake()
+    try {
+      await channel.syncChannels({ getUserOrFail: () => owner } as AuthenticatedSocket<User>)
+      broadcast.assertEmittedTo(`user/${owner.id}`, 'channels:updated', {
+        data: { channels: [room.serialize()] },
+      })
+      await assert.rejects(
+        () => channel.syncChannels({ getUserOrFail: () => outsider } as AuthenticatedSocket<User>),
+        'Not your user channel'
+      )
+    } finally {
+      broadcast.restore()
+    }
+  })
+
   test('saves and broadcasts a text message from a member', async ({ assert }) => {
     const owner = await createUser()
     const room = await Channel.createWithOwner(owner.id, `socket-${randomUUID()}`, 'public')

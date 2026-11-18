@@ -63,8 +63,8 @@ test.group('Inactive channel cleanup', (group) => {
     try {
       const service = new ChannelService()
       assert.equal(await service.pruneExpiredChannels(), 1)
-      broadcast.assertEmittedTo(`user/${owner.id}`, 'channels:changed', {
-        data: { channelId: expired.id },
+      broadcast.assertEmittedTo(`user/${owner.id}`, 'channels:updated', {
+        data: { channels: [active.serialize()] },
       })
       assert.isNull(await Channel.find(expired.id))
       assert.isNull(await Msg.find(oldMessage.id))
