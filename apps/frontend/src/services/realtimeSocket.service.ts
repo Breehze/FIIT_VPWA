@@ -9,76 +9,53 @@ type SocketChannel = ReturnType<Socket['channel']>;
 type PendingInvite = Invite & { channel: Channel };
 type ChannelSnapshot = { channels: Channel[] };
 
+interface RealtimeCallbacks {
+  onChannels: (channels: Channel[]) => void;
+  onReconnect: () => void;
+  onMessage: (message: Msg) => void;
+  onInvites: (invites: InvitedChannel[]) => void;
+  onPresence: (channelId: string) => void;
+  onOnlineUsers: (userIds: string[]) => void;
+  onStatus: (userId: string, state: UserState) => void;
+  onKickVote: (channelId: string) => void;
+  onTyping: (channelId: string, draft: TypingDraft) => void;
+}
+
 class RealtimeSocketService {
   private socket: Socket | null = null;
   private userId: string | null = null;
   private userChannel: SocketChannel | null = null;
-  private onlineChannel: SocketChannel | null = null;
   private channels = new Map<string, SocketChannel>();
   private retryTimer: ReturnType<typeof setTimeout> | null = null;
   private generation = 0;
   private attempts = 0;
-  private onMessage: ((message: Msg) => void) | null = null;
-  private onInvites: ((invites: InvitedChannel[]) => void) | null = null;
-  private onPresence: ((channelId: string) => void) | null = null;
-  private onOnlineUsers: ((userIds: string[]) => void) | null = null;
-  private onStatus: ((userId: string, state: UserState) => void) | null = null;
-  private onKickVote: ((channelId: string) => void) | null = null;
-  private onChannels: ((channels: Channel[]) => void) | null = null;
-  private onReconnect: (() => void) | null = null;
+  private callbacks: RealtimeCallbacks | null = null;
   private hasConnected = false;
-  private onTyping: ((channelId: string, draft: TypingDraft) => void) | null = null;
 
-  start(
-    userId: string,
-    callbacks: {
-      onChannels: (channels: Channel[]) => void;
-      onReconnect: () => void;
-      onMessage: (message: Msg) => void;
-      onInvites: (invites: InvitedChannel[]) => void;
-      onPresence: (channelId: string) => void;
-      onOnlineUsers: (userIds: string[]) => void;
-      onStatus: (userId: string, state: UserState) => void;
-      onKickVote: (channelId: string) => void;
-      onTyping: (channelId: string, draft: TypingDraft) => void;
-    },
-  ): void {
+  start(userId: string, callbacks: RealtimeCallbacks): void {
     this.stop();
     this.userId = userId;
-    this.onChannels = callbacks.onChannels;
-    this.onReconnect = callbacks.onReconnect;
-    this.onMessage = callbacks.onMessage;
-    this.onTyping = callbacks.onTyping;
-    this.onInvites = callbacks.onInvites;
-    this.onPresence = callbacks.onPresence;
-    this.onOnlineUsers = callbacks.onOnlineUsers;
-    this.onStatus = callbacks.onStatus;
-    this.onKickVote = callbacks.onKickVote;
+    this.callbacks = callbacks;
     void this.reconnect(this.generation);
   }
 
   stop(): void {
     this.generation++;
-    this.onOnlineUsers?.([]);
     if (this.retryTimer) clearTimeout(this.retryTimer);
     this.retryTimer = null;
     this.socket?.disconnect();
+    this.clearConnection();
+    this.userId = null;
+    this.callbacks = null;
+    this.hasConnected = false;
+    this.attempts = 0;
+  }
+
+  private clearConnection(): void {
     this.socket = null;
     this.userChannel = null;
-    this.onlineChannel = null;
     this.channels.clear();
-    this.userId = null;
-    this.onChannels = null;
-    this.onReconnect = null;
-    this.hasConnected = false;
-    this.onMessage = null;
-    this.onInvites = null;
-    this.onPresence = null;
-    this.onOnlineUsers = null;
-    this.onStatus = null;
-    this.onKickVote = null;
-    this.attempts = 0;
-    this.onTyping = null;
+    this.callbacks?.onOnlineUsers([]);
   }
 
   private scheduleRetry(generation: number): void {
@@ -97,49 +74,23 @@ class RealtimeSocketService {
       socket = new Socket({ url: API_URL, autoReconnect: false });
       this.socket = socket;
       socket.on('disconnect', () => {
-        if (generation !== this.generation || socket !== this.socket) return;
-        this.socket = null;
-        this.userChannel = null;
-        this.onlineChannel = null;
-        this.channels.clear();
-        this.onOnlineUsers?.([]);
+        if (socket !== this.socket) return;
+        this.clearConnection();
         this.scheduleRetry(generation);
       });
       await socket.connect();
-      if (generation !== this.generation) {
+      if (socket !== this.socket) {
         socket.disconnect();
         return;
       }
       this.attempts = 0;
-      const onlineChannel = socket.channel('users/online');
-      this.onlineChannel = onlineChannel;
-      onlineChannel.here((users) => this.onOnlineUsers?.(users.map((user) => user.id)));
-      onlineChannel.listen<{ userId: string; state: UserState }>(
-        'user:status',
-        ({ userId, state }) => this.onStatus?.(userId, state),
-      );
-      await onlineChannel.subscribe();
-      if (generation !== this.generation || socket !== this.socket) return;
-      const userChannel = socket.channel(`user/${this.userId}`);
-      this.userChannel = userChannel;
-      userChannel.listen('invite:created', () => void this.loadInvites());
-      // Keep subscription changes ordered when snapshots arrive close together.
-      let pendingSync = Promise.resolve();
-      const connectedSocket = socket;
-      userChannel.listen<ChannelSnapshot>('channels:updated', ({ channels }) => {
-        if (generation !== this.generation || connectedSocket !== this.socket) return;
-        this.onChannels?.(channels);
-        const previousSync = pendingSync;
-        pendingSync = this.applySubscriptions(previousSync, connectedSocket, channels);
-      });
-      await userChannel.subscribe();
-      if (generation !== this.generation || socket !== this.socket) return;
-      await userChannel.sendWithAck('channels:sync');
-      await pendingSync;
-      if (generation !== this.generation || socket !== this.socket) return;
+      await this.subscribeToPresence(socket);
+      if (socket !== this.socket) return;
+      await this.subscribeToUserUpdates(socket, this.userId);
+      if (socket !== this.socket) return;
       await this.loadInvites();
-      if (generation !== this.generation || socket !== this.socket) return;
-      if (this.hasConnected) this.onReconnect?.();
+      if (socket !== this.socket) return;
+      if (this.hasConnected) this.callbacks?.onReconnect();
       this.hasConnected = true;
     } catch (error) {
       if (generation !== this.generation) return;
@@ -147,6 +98,35 @@ class RealtimeSocketService {
       if (socket && this.socket === socket) socket.disconnect();
       this.scheduleRetry(generation);
     }
+  }
+
+  private async subscribeToPresence(socket: Socket): Promise<void> {
+    const channel = socket.channel('users/online');
+    channel.here((users) => this.callbacks?.onOnlineUsers(users.map((user) => user.id)));
+    channel.listen<{ userId: string; state: UserState }>(
+      'user:status',
+      ({ userId, state }) => this.callbacks?.onStatus(userId, state),
+    );
+    await channel.subscribe();
+  }
+
+  private async subscribeToUserUpdates(socket: Socket, userId: string): Promise<void> {
+    const channel = socket.channel(`user/${userId}`);
+    this.userChannel = channel;
+    channel.listen('invite:created', () => void this.loadInvites());
+
+    let pendingSync = Promise.resolve();
+    channel.listen<ChannelSnapshot>('channels:updated', ({ channels }) => {
+      if (socket !== this.socket) return;
+      this.callbacks?.onChannels(channels);
+      const previousSync = pendingSync;
+      pendingSync = this.applySubscriptions(previousSync, socket, channels);
+    });
+
+    await channel.subscribe();
+    if (socket !== this.socket) return;
+    await channel.sendWithAck('channels:sync');
+    await pendingSync;
   }
 
   private async applySubscriptions(
@@ -177,23 +157,28 @@ class RealtimeSocketService {
     for (const id of wanted) {
       if (socket !== this.socket) return;
       if (this.channels.has(id)) continue;
-      const channel = socket.channel(`channels/${id}`);
-      channel.listen<Msg>('message:created', (message) => this.onMessage?.(message));
-      channel.listenForWhisper<TypingDraft>('typing', (draft) => {
-        this.onTyping?.(id, draft);
-      });
-      channel.listen<{ channelId: string }>('kick:updated', ({ channelId }) =>
-        this.onKickVote?.(channelId),
-      );
-      channel.here(() => this.onPresence?.(id));
-      this.channels.set(id, channel);
-      try {
-        await channel.subscribe();
-      } catch (error) {
-        if (socket !== this.socket) return;
-        if (this.channels.get(id) === channel) this.channels.delete(id);
-        console.error(`Could not subscribe to channel ${id}:`, error);
-      }
+      await this.subscribeToChannel(socket, id);
+    }
+  }
+
+  private async subscribeToChannel(socket: Socket, channelId: string): Promise<void> {
+    const channel = socket.channel(`channels/${channelId}`);
+    channel.listen<Msg>('message:created', (message) => this.callbacks?.onMessage(message));
+    channel.listenForWhisper<TypingDraft>('typing', (draft) => {
+      this.callbacks?.onTyping(channelId, draft);
+    });
+    channel.listen<{ channelId: string }>('kick:updated', ({ channelId }) =>
+      this.callbacks?.onKickVote(channelId),
+    );
+    channel.here(() => this.callbacks?.onPresence(channelId));
+    this.channels.set(channelId, channel);
+
+    try {
+      await channel.subscribe();
+    } catch (error) {
+      if (socket !== this.socket) return;
+      if (this.channels.get(channelId) === channel) this.channels.delete(channelId);
+      console.error(`Could not subscribe to channel ${channelId}:`, error);
     }
   }
 
@@ -205,7 +190,9 @@ class RealtimeSocketService {
         'invites:list',
       );
       if (userChannel !== this.userChannel) return;
-      this.onInvites?.(result.invites.map((invite) => ({ invite, channel: invite.channel })));
+      this.callbacks?.onInvites(
+        result.invites.map((invite) => ({ invite, channel: invite.channel })),
+      );
     } catch (error) {
       console.error('Failed to load invitations:', error);
     }
