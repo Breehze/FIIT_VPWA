@@ -1,12 +1,12 @@
 import { Socket } from '@rlanz/socket/client';
-import type { Channel, Invite, Msg, UserState } from '@vpwa/shared';
+import type { Channel, Msg, UserState } from '@vpwa/shared';
 import type { InvitedChannel } from '@/services/channelActions.service';
 import type { TypingDraft } from '@/types/typing';
 
 const API_URL = 'http://localhost:3333';
 
 type SocketChannel = ReturnType<Socket['channel']>;
-type PendingInvite = Invite & { channel: Channel };
+type InviteSnapshot = { invites: InvitedChannel[] };
 type ChannelSnapshot = { channels: Channel[] };
 
 interface RealtimeCallbacks {
@@ -24,7 +24,6 @@ interface RealtimeCallbacks {
 class RealtimeSocketService {
   private socket: Socket | null = null;
   private userId: string | null = null;
-  private userChannel: SocketChannel | null = null;
   private channels = new Map<string, SocketChannel>();
   private retryTimer: ReturnType<typeof setTimeout> | null = null;
   private generation = 0;
@@ -53,7 +52,6 @@ class RealtimeSocketService {
 
   private clearConnection(): void {
     this.socket = null;
-    this.userChannel = null;
     this.channels.clear();
     this.callbacks?.onOnlineUsers([]);
   }
@@ -88,8 +86,6 @@ class RealtimeSocketService {
       if (socket !== this.socket) return;
       await this.subscribeToUserUpdates(socket, this.userId);
       if (socket !== this.socket) return;
-      await this.loadInvites();
-      if (socket !== this.socket) return;
       if (this.hasConnected) this.callbacks?.onReconnect();
       this.hasConnected = true;
     } catch (error) {
@@ -103,17 +99,18 @@ class RealtimeSocketService {
   private async subscribeToPresence(socket: Socket): Promise<void> {
     const channel = socket.channel('users/online');
     channel.here((users) => this.callbacks?.onOnlineUsers(users.map((user) => user.id)));
-    channel.listen<{ userId: string; state: UserState }>(
-      'user:status',
-      ({ userId, state }) => this.callbacks?.onStatus(userId, state),
+    channel.listen<{ userId: string; state: UserState }>('user:status', ({ userId, state }) =>
+      this.callbacks?.onStatus(userId, state),
     );
     await channel.subscribe();
   }
 
   private async subscribeToUserUpdates(socket: Socket, userId: string): Promise<void> {
     const channel = socket.channel(`user/${userId}`);
-    this.userChannel = channel;
-    channel.listen('invite:created', () => void this.loadInvites());
+    channel.listen<InviteSnapshot>('invites:updated', ({ invites }) => {
+      if (socket !== this.socket) return;
+      this.callbacks?.onInvites(invites);
+    });
 
     let pendingSync = Promise.resolve();
     channel.listen<ChannelSnapshot>('channels:updated', ({ channels }) => {
@@ -127,6 +124,8 @@ class RealtimeSocketService {
     if (socket !== this.socket) return;
     await channel.sendWithAck('channels:sync');
     await pendingSync;
+    if (socket !== this.socket) return;
+    await channel.sendWithAck('invites:sync');
   }
 
   private async applySubscriptions(
@@ -179,22 +178,6 @@ class RealtimeSocketService {
       if (socket !== this.socket) return;
       if (this.channels.get(channelId) === channel) this.channels.delete(channelId);
       console.error(`Could not subscribe to channel ${channelId}:`, error);
-    }
-  }
-
-  async loadInvites(): Promise<void> {
-    const userChannel = this.userChannel;
-    if (!userChannel?.active) return;
-    try {
-      const result = await userChannel.sendWithAck<undefined, { invites: PendingInvite[] }>(
-        'invites:list',
-      );
-      if (userChannel !== this.userChannel) return;
-      this.callbacks?.onInvites(
-        result.invites.map((invite) => ({ invite, channel: invite.channel })),
-      );
-    } catch (error) {
-      console.error('Failed to load invitations:', error);
     }
   }
 

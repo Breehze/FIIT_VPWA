@@ -7,7 +7,6 @@ import {
 } from '@/services/channelActions.service';
 import { useAuth } from '@/composables/useAuth';
 import { useNotifications } from '@/composables/useNotifications';
-import { realtimeSocketService } from '@/services/realtimeSocket.service';
 
 const channels = ref<Channel[]>([]);
 const loadedChannelsForUserId = ref<string | null>(null);
@@ -139,23 +138,6 @@ export function useChannels() {
     voteLoadVersions.clear();
   }
 
-  async function refreshInvites(): Promise<void> {
-    const userId = currentUser.value?.id;
-
-    if (!userId) {
-      invitedChannels.value = [];
-      return;
-    }
-
-    const invites = await channelActionsService.fetchPendingInvitesApi();
-
-    if (currentUser.value?.id !== userId) {
-      return;
-    }
-
-    invitedChannels.value = invites;
-  }
-
   async function createChannel(name: string, type: ChannelType): Promise<Channel> {
     if (!currentUser.value) {
       throw new Error('You must be logged in to create a channel');
@@ -225,8 +207,6 @@ export function useChannels() {
 
     await channelActionsService.processInviteApi(inviteId, 'accept');
 
-    await refreshInvites();
-
     if (pendingInvite) {
       selectChannel(pendingInvite.channel.id);
     }
@@ -238,9 +218,6 @@ export function useChannels() {
     }
 
     await channelActionsService.processInviteApi(inviteId, 'reject');
-
-    await refreshInvites();
-    await realtimeSocketService.loadInvites();
   }
 
   return {

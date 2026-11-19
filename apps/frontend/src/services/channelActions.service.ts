@@ -102,10 +102,6 @@ class ChannelActionsService {
     });
   }
 
-  async fetchPendingInvitesApi(): Promise<InvitedChannel[]> {
-    return channelRequest<InvitedChannel[]>('/invites');
-  }
-
   async processInviteApi(inviteId: string, action: 'accept' | 'reject'): Promise<void> {
     await channelRequest<unknown>('/invites', {
       inviteId,
