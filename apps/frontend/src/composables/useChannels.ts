@@ -16,28 +16,16 @@ const activeChannelId = ref<string | null>(null);
 const membersByChannel = ref<Record<string, User[]>>({});
 const userStates = ref<Record<string, User['state']>>({});
 const kickVotesByChannel = ref<Record<string, KickVoteProgress[]>>({});
-const voteLoadVersions = new Map<string, number>();
 let pendingSelectionId: string | null = null;
-
-async function refreshKickVotes(channelId: string): Promise<void> {
-  const version = (voteLoadVersions.get(channelId) ?? 0) + 1;
-  voteLoadVersions.set(channelId, version);
-  try {
-    const votes = await channelActionsService.fetchKickVotes(channelId);
-    if (
-      voteLoadVersions.get(channelId) === version &&
-      channels.value.some((c) => c.id === channelId)
-    ) {
-      kickVotesByChannel.value = { ...kickVotesByChannel.value, [channelId]: votes };
-    }
-  } catch (error) {
-    console.error('Failed to load kick votes:', error);
-  }
-}
 
 export function useChannels() {
   const { currentUser } = useAuth();
   const { removeChannelNotifications } = useNotifications();
+
+  function setKickVotes(channelId: string, votes: KickVoteProgress[]): void {
+    if (!channels.value.some((channel) => channel.id === channelId)) return;
+    kickVotesByChannel.value[channelId] = votes;
+  }
 
   const channelsLoaded = computed(
     () => !!currentUser.value && loadedChannelsForUserId.value === currentUser.value.id,
@@ -119,7 +107,6 @@ export function useChannels() {
     membersByChannel.value = {};
     userStates.value = {};
     kickVotesByChannel.value = {};
-    voteLoadVersions.clear();
   }
 
   async function createChannel(name: string, type: ChannelType): Promise<Channel> {
@@ -163,9 +150,7 @@ export function useChannels() {
   }
 
   async function kickMember(channelId: string, nickname: string) {
-    const result = await channelActionsService.kickMemberApi(channelId, nickname);
-    await refreshKickVotes(channelId);
-    return result;
+    return channelActionsService.kickMemberApi(channelId, nickname);
   }
 
   async function revokeMember(channelId: string, nickname: string) {
@@ -213,7 +198,7 @@ export function useChannels() {
     activeChannel,
     activeChannelMembers,
     activeKickVotes,
-    refreshKickVotes,
+    setKickVotes,
     membersByChannel,
     setUserPresence,
     selectChannel,

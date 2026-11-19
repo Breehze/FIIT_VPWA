@@ -278,9 +278,19 @@ test.group('Channels endpoints (/channels)', (group) => {
         assert.deepEqual(response.body(), { banned: false, votes: expected })
       }
 
-      broadcast.assertEmittedTo(`channels/${channel.id}`, 'kick:updated', {
-        data: { channelId: channel.id },
+      broadcast.assertEmittedTo(`user/${voter.id}`, 'kick-votes:updated', {
+        data: {
+          channelId: channel.id,
+          votes: [{ targetId: target.id, nick: target.nick, votes: 1, votedByMe: true }],
+        },
       })
+      broadcast.assertEmittedTo(`user/${owner.id}`, 'kick-votes:updated', {
+        data: {
+          channelId: channel.id,
+          votes: [{ targetId: target.id, nick: target.nick, votes: 1, votedByMe: false }],
+        },
+      })
+      broadcast.assertNotEmittedTo(`user/${outsider.id}`, 'kick-votes:updated')
 
       const votes = await client
         .get(`/channels/${channel.id}/kick-votes`)
@@ -297,6 +307,7 @@ test.group('Channels endpoints (/channels)', (group) => {
         .loginAs(owner)
       assert.isFalse(ownerVotes.body()[0].votedByMe)
 
+      broadcast.clear()
       const kick = await client
         .post(`/channels/${channel.id}/kick`)
         .withGuard('web')
@@ -304,6 +315,10 @@ test.group('Channels endpoints (/channels)', (group) => {
         .json({ nick: target.nick })
       kick.assertStatus(200)
       assert.isTrue(kick.body().banned)
+      broadcast.assertEmittedTo(`user/${voter.id}`, 'kick-votes:updated', {
+        data: { channelId: channel.id, votes: [] },
+      })
+      broadcast.assertNotEmittedTo(`user/${target.id}`, 'kick-votes:updated')
 
       const empty = await client
         .get(`/channels/${channel.id}/kick-votes`)
