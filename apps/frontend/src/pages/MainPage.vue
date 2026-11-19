@@ -46,11 +46,10 @@ const {
   channelsLoaded,
   setChannels,
   resetChannels,
-  refreshMembers,
+  setMembers,
   refreshKickVotes,
   setInvites,
-  setOnlineUsers,
-  setMemberStatus,
+  setUserPresence,
 } = useChannels();
 const { receiveMsg, loadInitialMsgs } = useChat();
 const { updateTypingDraft, clearTypingDrafts } = useTyping();
@@ -59,7 +58,6 @@ watch(
   () => activeChannel.value?.id,
   (channelId) => {
     if (!channelId) return;
-    void refreshMembers(channelId);
     void refreshKickVotes(channelId);
   },
 );
@@ -80,15 +78,14 @@ watch(
           updateTypingDraft(channelId, draft);
         },
         onInvites: setInvites,
-        onPresence: (channelId) => void refreshMembers(channelId),
-        onKickVote: (channelId) => {
-          void refreshKickVotes(channelId);
-          void refreshMembers(channelId);
-        },
-        onOnlineUsers: setOnlineUsers,
-        onStatus: (userId, state) => {
-          setMemberStatus(userId, state);
-          if (currentUser.value?.id === userId) currentUser.value.state = state;
+        onMembers: setMembers,
+        onKickVote: (channelId) => void refreshKickVotes(channelId),
+        onUserPresence: (users) => {
+          setUserPresence(users);
+          const ownPresence = users.find((user) => user.id === currentUser.value?.id);
+          if (ownPresence && currentUser.value) {
+            currentUser.value.state = ownPresence.state;
+          }
         },
       });
     }

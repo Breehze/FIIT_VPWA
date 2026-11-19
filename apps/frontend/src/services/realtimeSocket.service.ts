@@ -1,22 +1,23 @@
 import { Socket } from '@rlanz/socket/client';
-import type { Channel, Msg, UserState } from '@vpwa/shared';
+import type { Channel, Msg, User } from '@vpwa/shared';
 import type { InvitedChannel } from '@/services/channelActions.service';
 import type { TypingDraft } from '@/types/typing';
+import type { PresenceSnapshot, PresenceUser } from '@/types/presence';
 
 const API_URL = 'http://localhost:3333';
 
 type SocketChannel = ReturnType<Socket['channel']>;
 type InviteSnapshot = { invites: InvitedChannel[] };
 type ChannelSnapshot = { channels: Channel[] };
+type MemberSnapshot = { channelId: string; members: User[] };
 
 interface RealtimeCallbacks {
   onChannels: (channels: Channel[]) => void;
   onReconnect: () => void;
   onMessage: (message: Msg) => void;
   onInvites: (invites: InvitedChannel[]) => void;
-  onPresence: (channelId: string) => void;
-  onOnlineUsers: (userIds: string[]) => void;
-  onStatus: (userId: string, state: UserState) => void;
+  onMembers: (channelId: string, members: User[]) => void;
+  onUserPresence: (users: PresenceUser[]) => void;
   onKickVote: (channelId: string) => void;
   onTyping: (channelId: string, draft: TypingDraft) => void;
 }
@@ -53,7 +54,7 @@ class RealtimeSocketService {
   private clearConnection(): void {
     this.socket = null;
     this.channels.clear();
-    this.callbacks?.onOnlineUsers([]);
+    this.callbacks?.onUserPresence([]);
   }
 
   private scheduleRetry(generation: number): void {
@@ -98,11 +99,13 @@ class RealtimeSocketService {
 
   private async subscribeToPresence(socket: Socket): Promise<void> {
     const channel = socket.channel('users/online');
-    channel.here((users) => this.callbacks?.onOnlineUsers(users.map((user) => user.id)));
-    channel.listen<{ userId: string; state: UserState }>('user:status', ({ userId, state }) =>
-      this.callbacks?.onStatus(userId, state),
-    );
+    channel.listen<PresenceSnapshot>('presence:updated', ({ users }) => {
+      if (socket !== this.socket) return;
+      this.callbacks?.onUserPresence(users);
+    });
     await channel.subscribe();
+    if (socket !== this.socket) return;
+    await channel.sendWithAck('presence:sync');
   }
 
   private async subscribeToUserUpdates(socket: Socket, userId: string): Promise<void> {
@@ -169,11 +172,16 @@ class RealtimeSocketService {
     channel.listen<{ channelId: string }>('kick:updated', ({ channelId }) =>
       this.callbacks?.onKickVote(channelId),
     );
-    channel.here(() => this.callbacks?.onPresence(channelId));
+    channel.listen<MemberSnapshot>('members:updated', ({ members }) => {
+      if (socket !== this.socket || this.channels.get(channelId) !== channel) return;
+      this.callbacks?.onMembers(channelId, members);
+    });
     this.channels.set(channelId, channel);
 
     try {
       await channel.subscribe();
+      if (socket !== this.socket || this.channels.get(channelId) !== channel) return;
+      await channel.sendWithAck('members:sync');
     } catch (error) {
       if (socket !== this.socket) return;
       if (this.channels.get(channelId) === channel) this.channels.delete(channelId);

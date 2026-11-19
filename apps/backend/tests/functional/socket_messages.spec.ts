@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto'
 import { DateTime } from 'luxon'
 import { test } from '@japa/runner'
 import testUtils from '@adonisjs/core/services/test_utils'
+import app from '@adonisjs/core/services/app'
 import socketService from '@rlanz/socket/services/main'
 import type { AuthenticatedSocket, MiddlewareContext } from '@rlanz/socket/types'
 import MessagesChannel from '#channels/messages_channel'
@@ -9,6 +10,7 @@ import UserUpdatesChannel from '#channels/user_updates_channel'
 import OnlineUsersChannel from '#channels/online_users_channel'
 import ChannelService from '#services/channel_service'
 import InviteService from '#services/invite_service'
+import UserService from '#services/user_service'
 import Channel from '#models/channel'
 import Invite from '#models/invite'
 import Msg from '#models/msg'
@@ -31,6 +33,61 @@ async function createUser(): Promise<User> {
 
 test.group('Socket messages', (group) => {
   group.each.setup(() => testUtils.db().withGlobalTransaction())
+
+  test('member snapshots follow join, leave and kick and reject non-members', async ({
+    assert,
+  }) => {
+    const owner = await createUser()
+    const member = await createUser()
+    const outsider = await createUser()
+    const service = new ChannelService()
+    const room = await Channel.createWithOwner(owner.id, `members-${randomUUID()}`, 'public')
+    const channel = new MessagesChannel()
+    channel.$setContext({} as never, `channels/${room.id}`, { channelId: room.id })
+    const broadcast = socketService.fake()
+
+    function expectMembers(ids: string[]) {
+      broadcast.assertEmittedTo(`channels/${room.id}`, 'members:updated', {
+        data: (data: unknown) => {
+          const snapshot = data as {
+            channelId: string
+            members: { id: string; password?: string }[]
+          }
+          assert.equal(snapshot.channelId, room.id)
+          assert.deepEqual(snapshot.members.map((user) => user.id).sort(), [...ids].sort())
+          for (const user of snapshot.members) assert.notProperty(user, 'password')
+          return true
+        },
+      })
+      broadcast.clear()
+    }
+
+    try {
+      await channel.syncMembers({ getUserOrFail: () => owner } as AuthenticatedSocket<User>)
+      expectMembers([owner.id])
+      await assert.rejects(
+        () => channel.syncMembers({ getUserOrFail: () => outsider } as AuthenticatedSocket<User>),
+        'Not a member of this channel'
+      )
+      broadcast.assertCount(0)
+
+      await service.joinChannel(member.id, room.name)
+      expectMembers([owner.id, member.id])
+      await service.leaveChannel(member.id, room.id)
+      expectMembers([owner.id])
+      await service.joinChannel(member.id, room.name)
+      expectMembers([owner.id, member.id])
+      await service.kickMember(owner.id, room.id, member.nick)
+      expectMembers([owner.id])
+      await assert.rejects(
+        () => channel.syncMembers({ getUserOrFail: () => member } as AuthenticatedSocket<User>),
+        'Not a member of this channel'
+      )
+      broadcast.assertCount(0)
+    } finally {
+      broadcast.restore()
+    }
+  })
 
   test('channel sync publishes only the authenticated users current memberships', async ({
     assert,
@@ -182,6 +239,58 @@ test.group('Socket messages', (group) => {
 test.group('Socket user updates', (group) => {
   group.each.setup(() => testUtils.db().withGlobalTransaction())
 
+  test('presence snapshots respect saved status and the last connected tab', async ({ assert }) => {
+    const user = await createUser()
+    await createUser()
+    const presence = await app.container.make('socket.presence')
+    const firstTab = { id: randomUUID(), data: {}, connection: {} as never }
+    const secondTab = { id: randomUUID(), data: {}, connection: {} as never }
+    const channel = new OnlineUsersChannel()
+
+    async function expectSnapshot(action: () => Promise<void>, state?: User['state']) {
+      const broadcast = socketService.fake()
+      try {
+        await action()
+        const users = state ? [{ id: user.id, state }] : []
+        broadcast.assertEmittedTo('users/online', 'presence:updated', { data: { users } })
+      } finally {
+        broadcast.restore()
+      }
+    }
+
+    try {
+      await expectSnapshot(() => channel.syncPresence())
+      presence.join('users/online', firstTab, { id: user.id })
+      await expectSnapshot(() => channel.onMemberJoin(), 'Online')
+
+      presence.join('users/online', secondTab, { id: user.id })
+      await expectSnapshot(() => channel.syncPresence(), 'Online')
+
+      await expectSnapshot(async () => {
+        await new UserService().updateStatus(user, 'DND')
+      }, 'DND')
+      await expectSnapshot(async () => {
+        await new UserService().updateStatus(user, 'Offline')
+      }, 'Offline')
+      await expectSnapshot(async () => {
+        await new UserService().updateStatus(user, 'Online')
+      }, 'Online')
+
+      assert.isUndefined(presence.leave('users/online', firstTab))
+      await expectSnapshot(() => channel.syncPresence(), 'Online')
+      assert.exists(presence.leave('users/online', secondTab))
+      await expectSnapshot(() => channel.onMemberLeave())
+
+      await user.refresh()
+      assert.equal(user.state, 'Online', 'Disconnecting preserves the saved preference')
+      presence.join('users/online', firstTab, { id: user.id })
+      await expectSnapshot(() => channel.syncPresence(), 'Online')
+    } finally {
+      presence.leave('users/online', firstTab)
+      presence.leave('users/online', secondTab)
+    }
+  })
+
   test('pushes the pending invite snapshot after creating an invite', async ({ assert }) => {
     const sender = await createUser()
     const recipient = await createUser()
@@ -273,6 +382,7 @@ test.group('Socket user updates', (group) => {
           broadcast.assertEmittedTo(`user/${recipient.id}`, 'channels:updated', {
             data: { channels: [room.serialize()] },
           })
+          broadcast.assertEmittedTo(`channels/${room.id}`, 'members:updated')
         }
       } finally {
         broadcast.restore()

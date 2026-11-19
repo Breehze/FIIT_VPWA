@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto'
 import { test } from '@japa/runner'
 import testUtils from '@adonisjs/core/services/test_utils'
 import socket from '@rlanz/socket/services/main'
+import app from '@adonisjs/core/services/app'
 import User from '#models/user'
 
 test.group('User endpoints (/user)', (group) => {
@@ -30,6 +31,8 @@ test.group('User endpoints (/user)', (group) => {
 
   test('POST /user/set_status updates the user status', async ({ client, assert }) => {
     const broadcast = socket.fake()
+    const presence = await app.container.make('socket.presence')
+    const raw = { id: randomUUID(), data: {}, connection: {} as never }
     try {
       const user = await User.create({
         id: randomUUID(),
@@ -41,6 +44,7 @@ test.group('User endpoints (/user)', (group) => {
         state: 'Online',
         mentionOnlyNotif: false,
       })
+      presence.join('users/online', raw, { id: user.id })
 
       const response = await client
         .post('/user/set_status')
@@ -53,10 +57,11 @@ test.group('User endpoints (/user)', (group) => {
 
       await user.refresh()
       assert.equal(user.state, 'DND')
-      broadcast.assertEmittedTo('users/online', 'user:status', {
-        data: { userId: user.id, state: 'DND' },
+      broadcast.assertEmittedTo('users/online', 'presence:updated', {
+        data: { users: [{ id: user.id, state: 'DND' }] },
       })
     } finally {
+      presence.leave('users/online', raw)
       broadcast.restore()
     }
   })

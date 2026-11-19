@@ -1,4 +1,4 @@
-import type { Channel, ChannelType, Invite, User } from '@vpwa/shared';
+import type { Channel, ChannelType, Invite } from '@vpwa/shared';
 
 export interface InvitedChannel {
   invite: Invite;
@@ -49,10 +49,6 @@ async function channelRequest<T>(path: string, body?: object): Promise<T> {
 class ChannelActionsService {
   async fetchUserChannels(): Promise<Channel[]> {
     return channelRequest<Channel[]>('/channels');
-  }
-
-  async fetchChannelMembers(channelId: string): Promise<User[]> {
-    return channelRequest<User[]>(`/channels/${encodeURIComponent(channelId)}/members`);
   }
 
   async leaveChannelApi(channelId: string): Promise<void> {
