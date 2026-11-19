@@ -66,6 +66,9 @@ test.group('Inactive channel cleanup', (group) => {
       broadcast.assertEmittedTo(`user/${owner.id}`, 'channels:updated', {
         data: { channels: [active.serialize()] },
       })
+      broadcast.assertEmittedTo(`user/${invitee.id}`, 'invites:updated', {
+        data: { invites: [] },
+      })
       assert.isNull(await Channel.find(expired.id))
       assert.isNull(await Msg.find(oldMessage.id))
       assert.isNull(await Invite.find(invite.id))

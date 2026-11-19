@@ -8,6 +8,7 @@ import MessagesChannel from '#channels/messages_channel'
 import UserUpdatesChannel from '#channels/user_updates_channel'
 import OnlineUsersChannel from '#channels/online_users_channel'
 import ChannelService from '#services/channel_service'
+import InviteService from '#services/invite_service'
 import Channel from '#models/channel'
 import Invite from '#models/invite'
 import Msg from '#models/msg'
@@ -181,7 +182,7 @@ test.group('Socket messages', (group) => {
 test.group('Socket user updates', (group) => {
   group.each.setup(() => testUtils.db().withGlobalTransaction())
 
-  test('pushes an invite after creating it', async ({ assert }) => {
+  test('pushes the pending invite snapshot after creating an invite', async ({ assert }) => {
     const sender = await createUser()
     const recipient = await createUser()
     const room = await Channel.createWithOwner(sender.id, `socket-${randomUUID()}`, 'private')
@@ -190,8 +191,9 @@ test.group('Socket user updates', (group) => {
     try {
       const invite = await new ChannelService().inviteMember(sender.id, room.id, recipient.nick)
       assert.equal(invite.inviteeId, recipient.id)
-      broadcast.assertEmittedTo(`user/${recipient.id}`, 'invite:created', {
-        data: invite.serialize(),
+      await invite.load('channel')
+      broadcast.assertEmittedTo(`user/${recipient.id}`, 'invites:updated', {
+        data: { invites: [{ invite: invite.serialize(), channel: room.serialize() }] },
       })
     } finally {
       broadcast.restore()
@@ -238,6 +240,60 @@ test.group('Socket user updates', (group) => {
       () => channel.list({ getUserOrFail: () => other } as AuthenticatedSocket<User>),
       'Not your user channel'
     )
+
+    const broadcast = socketService.fake()
+    try {
+      await channel.syncInvites(ctx.socket)
+      await invite.load('channel')
+      broadcast.assertEmittedTo(`user/${recipient.id}`, 'invites:updated', {
+        data: { invites: [{ invite: invite.serialize(), channel: room.serialize() }] },
+      })
+      await assert.rejects(
+        () => channel.syncInvites({ getUserOrFail: () => other } as AuthenticatedSocket<User>),
+        'Not your user channel'
+      )
+    } finally {
+      broadcast.restore()
+    }
+  })
+
+  for (const action of ['accept', 'reject'] as const) {
+    test(`pushes an empty invite snapshot after ${action}`, async () => {
+      const sender = await createUser()
+      const recipient = await createUser()
+      const room = await Channel.createWithOwner(sender.id, `socket-${randomUUID()}`, 'private')
+      const invite = await Invite.findOrCreatePending(room.id, sender.id, recipient.id)
+      const broadcast = socketService.fake()
+      try {
+        await new InviteService().process(recipient.id, invite.id, action)
+        broadcast.assertEmittedTo(`user/${recipient.id}`, 'invites:updated', {
+          data: { invites: [] },
+        })
+        if (action === 'accept') {
+          broadcast.assertEmittedTo(`user/${recipient.id}`, 'channels:updated', {
+            data: { channels: [room.serialize()] },
+          })
+        }
+      } finally {
+        broadcast.restore()
+      }
+    })
+  }
+
+  test('channel deletion updates pending invites for recipients who are not members', async () => {
+    const sender = await createUser()
+    const recipient = await createUser()
+    const room = await Channel.createWithOwner(sender.id, `socket-${randomUUID()}`, 'private')
+    await Invite.findOrCreatePending(room.id, sender.id, recipient.id)
+    const broadcast = socketService.fake()
+    try {
+      await new ChannelService().deleteChannel(sender.id, room.id)
+      broadcast.assertEmittedTo(`user/${recipient.id}`, 'invites:updated', {
+        data: { invites: [] },
+      })
+    } finally {
+      broadcast.restore()
+    }
   })
 })
 

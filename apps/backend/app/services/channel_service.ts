@@ -10,6 +10,7 @@ import Invite from '#models/invite'
 import VoteKick from '#models/vote_kick'
 import Msg from '#models/msg'
 import { publishChannelSnapshot } from '#services/channel_snapshot_service'
+import { publishInviteSnapshot } from '#services/invite_snapshot_service'
 
 export type ChannelType = 'public' | 'private'
 export type KickVoteProgress = { targetId: string; nick: string; votes: number; votedByMe: boolean }
@@ -30,16 +31,25 @@ async function disconnectSubscribers(channelId: string, userId?: string) {
 export default class ChannelService {
   private async deleteAndNotify(channel: Channel) {
     const members = await UserChannel.query().where('channelId', channel.id).where('banned', false)
+    const invites = await Invite.query().where('channelId', channel.id).where('status', 'pending')
     await channel.deleteWithRelations()
     try {
-      await Promise.all(members.map((member) => publishChannelSnapshot(member.userId)))
+      const updates: Promise<void>[] = []
+      for (const member of members) {
+        updates.push(publishChannelSnapshot(member.userId))
+      }
+      const inviteeIds = new Set(invites.map((invite) => invite.inviteeId))
+      for (const userId of inviteeIds) {
+        updates.push(publishInviteSnapshot(userId))
+      }
+      await Promise.all(updates)
     } finally {
       await disconnectSubscribers(channel.id)
     }
   }
 
   private async removeIfExpired(channelId: string, cutoff: DateTime): Promise<boolean> {
-    const memberIds = await db.transaction(async (trx) => {
+    const recipients = await db.transaction(async (trx) => {
       const channel = await Channel.query({ client: trx })
         .where('id', channelId)
         .forUpdate()
@@ -50,14 +60,27 @@ export default class ChannelService {
       const members = await UserChannel.query({ client: trx })
         .where('channelId', channel.id)
         .where('banned', false)
+      const invites = await Invite.query({ client: trx })
+        .where('channelId', channel.id)
+        .where('status', 'pending')
 
       await channel.deleteWithRelations(trx)
-      return members.map((member) => member.userId)
+      return {
+        memberIds: members.map((member) => member.userId),
+        inviteeIds: [...new Set(invites.map((invite) => invite.inviteeId))],
+      }
     })
 
-    if (!memberIds) return false
+    if (!recipients) return false
     try {
-      await Promise.all(memberIds.map((userId) => publishChannelSnapshot(userId)))
+      const updates: Promise<void>[] = []
+      for (const userId of recipients.memberIds) {
+        updates.push(publishChannelSnapshot(userId))
+      }
+      for (const userId of recipients.inviteeIds) {
+        updates.push(publishInviteSnapshot(userId))
+      }
+      await Promise.all(updates)
     } finally {
       await disconnectSubscribers(channelId)
     }
@@ -275,7 +298,7 @@ export default class ChannelService {
     }
 
     const invite = await Invite.findOrCreatePending(channel.id, userId, targetUser.id)
-    socket.to(`user/${invite.inviteeId}`).emit('invite:created', invite.serialize())
+    await publishInviteSnapshot(invite.inviteeId)
     return invite
   }
 
