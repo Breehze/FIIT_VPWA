@@ -8,6 +8,7 @@ import UserChannel from '#models/user_channel'
 import Channel from '#models/channel'
 import Msg from '#models/msg'
 import { publishMemberSnapshot, type MemberSnapshot } from '#services/member_snapshot_service'
+import { publishKickVoteSnapshot } from '#services/kick_vote_snapshot_service'
 
 type MessageEvent = {
   id: number
@@ -66,6 +67,12 @@ export default class MessagesChannel extends BaseChannel<User, LiveEvents> {
   async syncMembers(socket: AuthenticatedSocket<User>): Promise<void> {
     const channelId = await this.requireActiveMember(socket)
     await publishMemberSnapshot(channelId)
+  }
+
+  @onMessage('kick-votes:sync')
+  async syncKickVotes(socket: AuthenticatedSocket<User>): Promise<void> {
+    const channelId = await this.requireActiveMember(socket)
+    await publishKickVoteSnapshot(channelId, socket.getUserOrFail().id)
   }
 
   @onMessage('message:send')

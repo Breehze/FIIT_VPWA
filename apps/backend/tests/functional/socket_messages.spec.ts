@@ -16,6 +16,7 @@ import Invite from '#models/invite'
 import Msg from '#models/msg'
 import User from '#models/user'
 import UserChannel from '#models/user_channel'
+import VoteKick from '#models/vote_kick'
 
 async function createUser(): Promise<User> {
   const unique = randomUUID().slice(0, 8)
@@ -33,6 +34,65 @@ async function createUser(): Promise<User> {
 
 test.group('Socket messages', (group) => {
   group.each.setup(() => testUtils.db().withGlobalTransaction())
+
+  test('kick vote sync is personalized and rejects outsiders and banned members', async ({
+    assert,
+  }) => {
+    const owner = await createUser()
+    const voter = await createUser()
+    const target = await createUser()
+    const outsider = await createUser()
+    const room = await Channel.createWithOwner(owner.id, `votes-${randomUUID()}`, 'public')
+    const membership = await UserChannel.addMember(room.id, voter.id)
+    await UserChannel.addMember(room.id, target.id)
+    await VoteKick.addVoteAndCount(room.id, target.id, voter.id)
+    const channel = new MessagesChannel()
+    channel.$setContext({} as never, `channels/${room.id}`, { channelId: room.id })
+    const broadcast = socketService.fake()
+    try {
+      await channel.syncKickVotes({ getUserOrFail: () => voter } as AuthenticatedSocket<User>)
+      broadcast.assertEmittedTo(`user/${voter.id}`, 'kick-votes:updated', {
+        data: {
+          channelId: room.id,
+          votes: [{ targetId: target.id, nick: target.nick, votes: 1, votedByMe: true }],
+        },
+      })
+      broadcast.assertNotEmittedTo(`user/${owner.id}`, 'kick-votes:updated')
+      broadcast.clear()
+
+      await assert.rejects(
+        () => channel.syncKickVotes({ getUserOrFail: () => outsider } as AuthenticatedSocket<User>),
+        'Not a member of this channel'
+      )
+      await membership.markBanned()
+      await assert.rejects(
+        () => channel.syncKickVotes({ getUserOrFail: () => voter } as AuthenticatedSocket<User>),
+        'Not a member of this channel'
+      )
+      broadcast.assertCount(0)
+    } finally {
+      broadcast.restore()
+    }
+  })
+
+  test('unbanning a target publishes cleared votes', async () => {
+    const owner = await createUser()
+    const target = await createUser()
+    const room = await Channel.createWithOwner(owner.id, `votes-${randomUUID()}`, 'public')
+    const membership = await UserChannel.addMember(room.id, target.id)
+    await VoteKick.addVoteAndCount(room.id, target.id, owner.id)
+    await membership.markBanned()
+    const broadcast = socketService.fake()
+    try {
+      await new ChannelService().inviteMember(owner.id, room.id, target.nick)
+      broadcast.assertEmittedTo(`user/${owner.id}`, 'kick-votes:updated', {
+        data: { channelId: room.id, votes: [] },
+      })
+      broadcast.assertNotEmittedTo(`user/${target.id}`, 'kick-votes:updated')
+    } finally {
+      broadcast.restore()
+    }
+  })
 
   test('member snapshots follow join, leave and kick and reject non-members', async ({
     assert,

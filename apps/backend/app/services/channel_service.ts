@@ -12,9 +12,13 @@ import Msg from '#models/msg'
 import { publishChannelSnapshot } from '#services/channel_snapshot_service'
 import { publishInviteSnapshot } from '#services/invite_snapshot_service'
 import { publishMemberSnapshot } from '#services/member_snapshot_service'
+import {
+  publishKickVoteSnapshot,
+  serializeKickVotes,
+  type KickVoteProgress,
+} from '#services/kick_vote_snapshot_service'
 
 export type ChannelType = 'public' | 'private'
-export type KickVoteProgress = { targetId: string; nick: string; votes: number; votedByMe: boolean }
 
 const KICK_VOTE_THRESHOLD = 3
 
@@ -139,12 +143,7 @@ export default class ChannelService {
       .where('channelId', channelId)
       .preload('target')
       .preload('voters')
-    return votes.map((vote) => ({
-      targetId: vote.targetId,
-      nick: vote.target.nick,
-      votes: vote.voters.length,
-      votedByMe: vote.voters.some((voter) => voter.userId === userId),
-    }))
+    return serializeKickVotes(votes, userId)
   }
 
   /**
@@ -298,6 +297,7 @@ export default class ChannelService {
 
       await targetMembership.delete()
       await VoteKick.clearForTarget(channel.id, targetUser.id)
+      await publishKickVoteSnapshot(channel.id)
     }
 
     const invite = await Invite.findOrCreatePending(channel.id, userId, targetUser.id)
@@ -358,7 +358,6 @@ export default class ChannelService {
       return { banned: votes >= KICK_VOTE_THRESHOLD, votes }
     })
 
-    socket.to(`channels/${channel.id}`).emit('kick:updated', { channelId: channel.id })
     if (result.banned) {
       try {
         await publishChannelSnapshot(targetUser.id)
@@ -367,6 +366,7 @@ export default class ChannelService {
       }
       await publishMemberSnapshot(channel.id)
     }
+    await publishKickVoteSnapshot(channel.id)
     return result
   }
 

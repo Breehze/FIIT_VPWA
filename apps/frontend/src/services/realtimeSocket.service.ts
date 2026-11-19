@@ -1,6 +1,6 @@
 import { Socket } from '@rlanz/socket/client';
 import type { Channel, Msg, User } from '@vpwa/shared';
-import type { InvitedChannel } from '@/services/channelActions.service';
+import type { InvitedChannel, KickVoteProgress } from '@/services/channelActions.service';
 import type { TypingDraft } from '@/types/typing';
 import type { PresenceSnapshot, PresenceUser } from '@/types/presence';
 
@@ -10,6 +10,7 @@ type SocketChannel = ReturnType<Socket['channel']>;
 type InviteSnapshot = { invites: InvitedChannel[] };
 type ChannelSnapshot = { channels: Channel[] };
 type MemberSnapshot = { channelId: string; members: User[] };
+type KickVoteSnapshot = { channelId: string; votes: KickVoteProgress[] };
 
 interface RealtimeCallbacks {
   onChannels: (channels: Channel[]) => void;
@@ -18,7 +19,7 @@ interface RealtimeCallbacks {
   onInvites: (invites: InvitedChannel[]) => void;
   onMembers: (channelId: string, members: User[]) => void;
   onUserPresence: (users: PresenceUser[]) => void;
-  onKickVote: (channelId: string) => void;
+  onKickVotes: (channelId: string, votes: KickVoteProgress[]) => void;
   onTyping: (channelId: string, draft: TypingDraft) => void;
 }
 
@@ -110,6 +111,10 @@ class RealtimeSocketService {
 
   private async subscribeToUserUpdates(socket: Socket, userId: string): Promise<void> {
     const channel = socket.channel(`user/${userId}`);
+    channel.listen<KickVoteSnapshot>('kick-votes:updated', ({ channelId, votes }) => {
+      if (socket !== this.socket) return;
+      this.callbacks?.onKickVotes(channelId, votes);
+    });
     channel.listen<InviteSnapshot>('invites:updated', ({ invites }) => {
       if (socket !== this.socket) return;
       this.callbacks?.onInvites(invites);
@@ -169,9 +174,6 @@ class RealtimeSocketService {
     channel.listenForWhisper<TypingDraft>('typing', (draft) => {
       this.callbacks?.onTyping(channelId, draft);
     });
-    channel.listen<{ channelId: string }>('kick:updated', ({ channelId }) =>
-      this.callbacks?.onKickVote(channelId),
-    );
     channel.listen<MemberSnapshot>('members:updated', ({ members }) => {
       if (socket !== this.socket || this.channels.get(channelId) !== channel) return;
       this.callbacks?.onMembers(channelId, members);
@@ -182,6 +184,8 @@ class RealtimeSocketService {
       await channel.subscribe();
       if (socket !== this.socket || this.channels.get(channelId) !== channel) return;
       await channel.sendWithAck('members:sync');
+      if (socket !== this.socket || this.channels.get(channelId) !== channel) return;
+      await channel.sendWithAck('kick-votes:sync');
     } catch (error) {
       if (socket !== this.socket) return;
       if (this.channels.get(channelId) === channel) this.channels.delete(channelId);

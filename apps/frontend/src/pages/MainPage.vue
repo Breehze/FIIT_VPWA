@@ -47,20 +47,12 @@ const {
   setChannels,
   resetChannels,
   setMembers,
-  refreshKickVotes,
+  setKickVotes,
   setInvites,
   setUserPresence,
 } = useChannels();
 const { receiveMsg, loadInitialMsgs } = useChat();
 const { updateTypingDraft, clearTypingDrafts } = useTyping();
-
-watch(
-  () => activeChannel.value?.id,
-  (channelId) => {
-    if (!channelId) return;
-    void refreshKickVotes(channelId);
-  },
-);
 
 watch(
   () => currentUser.value?.id,
@@ -79,7 +71,7 @@ watch(
         },
         onInvites: setInvites,
         onMembers: setMembers,
-        onKickVote: (channelId) => void refreshKickVotes(channelId),
+        onKickVotes: setKickVotes,
         onUserPresence: (users) => {
           setUserPresence(users);
           const ownPresence = users.find((user) => user.id === currentUser.value?.id);

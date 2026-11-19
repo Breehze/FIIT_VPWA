@@ -5,6 +5,7 @@ import type User from '#models/user'
 import Invite from '#models/invite'
 import { publishChannelSnapshot, type ChannelSnapshot } from '#services/channel_snapshot_service'
 import { publishInviteSnapshot, type InviteSnapshot } from '#services/invite_snapshot_service'
+import type { KickVoteSnapshot } from '#services/kick_vote_snapshot_service'
 
 async function requireOwnChannel(ctx: MiddlewareContext<User>, next: () => Promise<void>) {
   const userId = ctx.socket.getUserOrFail().id
@@ -17,7 +18,11 @@ async function requireOwnChannel(ctx: MiddlewareContext<User>, next: () => Promi
 
 export default class UserUpdatesChannel extends BaseChannel<
   User,
-  { 'invites:updated': InviteSnapshot; 'channels:updated': ChannelSnapshot }
+  {
+    'invites:updated': InviteSnapshot
+    'channels:updated': ChannelSnapshot
+    'kick-votes:updated': KickVoteSnapshot
+  }
 > {
   static pattern = 'user/:userId'
   static middlewares = [requireOwnChannel]

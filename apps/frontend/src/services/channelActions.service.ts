@@ -62,10 +62,6 @@ class ChannelActionsService {
     return channelRequest(`/channels/${encodeURIComponent(channelId)}/kick`, { nick });
   }
 
-  async fetchKickVotes(channelId: string): Promise<KickVoteProgress[]> {
-    return channelRequest(`/channels/${encodeURIComponent(channelId)}/kick-votes`);
-  }
-
   async revokeMemberApi(channelId: string, nick: string): Promise<void> {
     await channelRequest<unknown>(`/channels/${encodeURIComponent(channelId)}/revoke`, { nick });
   }
