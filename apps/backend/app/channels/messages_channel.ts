@@ -7,6 +7,7 @@ import User from '#models/user'
 import UserChannel from '#models/user_channel'
 import Channel from '#models/channel'
 import Msg from '#models/msg'
+import { publishMemberSnapshot, type MemberSnapshot } from '#services/member_snapshot_service'
 
 type MessageEvent = {
   id: number
@@ -19,6 +20,7 @@ type MessageEvent = {
 
 type LiveEvents = {
   'message:created': MessageEvent
+  'members:updated': MemberSnapshot
 }
 
 async function requireChannelMember(ctx: MiddlewareContext<User>, next: () => Promise<void>) {
@@ -58,6 +60,12 @@ export default class MessagesChannel extends BaseChannel<User, LiveEvents> {
       throw new SocketResponseError('Not a member of this channel')
     }
     return channelId
+  }
+
+  @onMessage('members:sync')
+  async syncMembers(socket: AuthenticatedSocket<User>): Promise<void> {
+    const channelId = await this.requireActiveMember(socket)
+    await publishMemberSnapshot(channelId)
   }
 
   @onMessage('message:send')

@@ -7,14 +7,14 @@ import {
 } from '@/services/channelActions.service';
 import { useAuth } from '@/composables/useAuth';
 import { useNotifications } from '@/composables/useNotifications';
+import type { PresenceUser } from '@/types/presence';
 
 const channels = ref<Channel[]>([]);
 const loadedChannelsForUserId = ref<string | null>(null);
 const invitedChannels = ref<InvitedChannel[]>([]);
 const activeChannelId = ref<string | null>(null);
 const membersByChannel = ref<Record<string, User[]>>({});
-const onlineUserIds = ref(new Set<string>());
-const statusOverrides = ref<Record<string, User['state']>>({});
+const userStates = ref<Record<string, User['state']>>({});
 const kickVotesByChannel = ref<Record<string, KickVoteProgress[]>>({});
 const voteLoadVersions = new Map<string, number>();
 let pendingSelectionId: string | null = null;
@@ -54,27 +54,18 @@ export function useChannels() {
   const activeChannelMembers = computed<User[]>(() => {
     const members = membersByChannel.value[activeChannelId.value ?? ''] ?? [];
 
-    return members.map((member) => {
-      const preference =
-        member.id === currentUser.value?.id
-          ? currentUser.value.state
-          : (statusOverrides.value[member.id] ?? member.state);
-      return {
-        ...member,
-        state:
-          !onlineUserIds.value.has(member.id) || preference === 'Offline'
-            ? ('Offline' as const)
-            : preference,
-      };
-    });
+    return members.map((member) => ({
+      ...member,
+      state: userStates.value[member.id] ?? 'Offline',
+    }));
   });
 
-  function setOnlineUsers(ids: string[]): void {
-    onlineUserIds.value = new Set(ids);
-  }
-
-  function setMemberStatus(userId: string, state: User['state']): void {
-    statusOverrides.value = { ...statusOverrides.value, [userId]: state };
+  function setUserPresence(users: PresenceUser[]): void {
+    const states: Record<string, User['state']> = {};
+    for (const user of users) {
+      states[user.id] = user.state;
+    }
+    userStates.value = states;
   }
 
   function selectChannel(channelId: string) {
@@ -87,15 +78,9 @@ export function useChannels() {
     }
   }
 
-  async function refreshMembers(channelId: string): Promise<void> {
-    try {
-      const members = await channelActionsService.fetchChannelMembers(channelId);
-      if (channels.value.some((channel) => channel.id === channelId)) {
-        membersByChannel.value = { ...membersByChannel.value, [channelId]: members };
-      }
-    } catch (error) {
-      console.error('Failed to load channel members:', error);
-    }
+  function setMembers(channelId: string, members: User[]): void {
+    if (!channels.value.some((channel) => channel.id === channelId)) return;
+    membersByChannel.value[channelId] = members;
   }
 
   function setChannels(updatedChannels: Channel[]): void {
@@ -132,8 +117,7 @@ export function useChannels() {
     activeChannelId.value = null;
     pendingSelectionId = null;
     membersByChannel.value = {};
-    onlineUserIds.value = new Set();
-    statusOverrides.value = {};
+    userStates.value = {};
     kickVotesByChannel.value = {};
     voteLoadVersions.clear();
   }
@@ -181,13 +165,11 @@ export function useChannels() {
   async function kickMember(channelId: string, nickname: string) {
     const result = await channelActionsService.kickMemberApi(channelId, nickname);
     await refreshKickVotes(channelId);
-    await refreshMembers(channelId);
     return result;
   }
 
   async function revokeMember(channelId: string, nickname: string) {
     await channelActionsService.revokeMemberApi(channelId, nickname);
-    await refreshMembers(channelId);
   }
 
   async function inviteMember(channelId: string, nickname: string): Promise<void> {
@@ -233,12 +215,11 @@ export function useChannels() {
     activeKickVotes,
     refreshKickVotes,
     membersByChannel,
-    setOnlineUsers,
-    setMemberStatus,
+    setUserPresence,
     selectChannel,
     setChannels,
     resetChannels,
-    refreshMembers,
+    setMembers,
     createChannel,
     joinChannel,
     leaveChannel,

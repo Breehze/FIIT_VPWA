@@ -2,6 +2,7 @@ import { Exception } from '@adonisjs/core/exceptions'
 import db from '@adonisjs/lucid/services/db'
 import { publishChannelSnapshot } from '#services/channel_snapshot_service'
 import { publishInviteSnapshot } from '#services/invite_snapshot_service'
+import { publishMemberSnapshot } from '#services/member_snapshot_service'
 import type User from '#models/user'
 import Invite from '#models/invite'
 import UserChannel from '#models/user_channel'
@@ -46,7 +47,11 @@ export default class InviteService {
     })
 
     if (action === 'accept') {
-      await Promise.all([publishChannelSnapshot(userId), publishInviteSnapshot(userId)])
+      await Promise.all([
+        publishChannelSnapshot(userId),
+        publishInviteSnapshot(userId),
+        publishMemberSnapshot(result.channelId),
+      ])
     } else {
       await publishInviteSnapshot(userId)
     }

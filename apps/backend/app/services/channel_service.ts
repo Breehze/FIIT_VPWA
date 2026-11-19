@@ -11,6 +11,7 @@ import VoteKick from '#models/vote_kick'
 import Msg from '#models/msg'
 import { publishChannelSnapshot } from '#services/channel_snapshot_service'
 import { publishInviteSnapshot } from '#services/invite_snapshot_service'
+import { publishMemberSnapshot } from '#services/member_snapshot_service'
 
 export type ChannelType = 'public' | 'private'
 export type KickVoteProgress = { targetId: string; nick: string; votes: number; votedByMe: boolean }
@@ -180,7 +181,7 @@ export default class ChannelService {
     }
 
     const channel = await Channel.createWithOwner(userId, rawName, type)
-    await publishChannelSnapshot(userId)
+    await Promise.all([publishChannelSnapshot(userId), publishMemberSnapshot(channel.id)])
     return channel
   }
 
@@ -215,7 +216,7 @@ export default class ChannelService {
     }
 
     await UserChannel.addMember(channel.id, userId)
-    await publishChannelSnapshot(userId)
+    await Promise.all([publishChannelSnapshot(userId), publishMemberSnapshot(channel.id)])
     return channel
   }
 
@@ -237,6 +238,7 @@ export default class ChannelService {
     } finally {
       await disconnectSubscribers(channel.id, userId)
     }
+    await publishMemberSnapshot(channel.id)
   }
 
   /**
@@ -266,6 +268,7 @@ export default class ChannelService {
     } finally {
       await disconnectSubscribers(channel.id, targetUser.id)
     }
+    await publishMemberSnapshot(channel.id)
   }
 
   /**
@@ -362,6 +365,7 @@ export default class ChannelService {
       } finally {
         await disconnectSubscribers(channel.id, targetUser.id)
       }
+      await publishMemberSnapshot(channel.id)
     }
     return result
   }
