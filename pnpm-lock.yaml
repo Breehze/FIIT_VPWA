@@ -162,6 +162,9 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+patchedDependencies:
+  '@rlanz/socket@0.2.4': 08170f33c1fefab76453b29bf47b6ade2fc6f3046688aa810922c60bedeafc85
+
 importers:
 
   .: {}
@@ -191,7 +194,7 @@ importers:
         version: 3.2.1(@japa/assert@4.2.0(@japa/runner@5.4.0))(@japa/runner@5.4.0)(supports-color@8.1.1)
       '@rlanz/socket':
         specifier: ^0.2.4
-        version: 0.2.4(@adonisjs/assembler@8.6.0(typescript@6.0.3))(@adonisjs/core@7.6.0(@adonisjs/assembler@8.6.0(typescript@6.0.3))(@vinejs/vine@4.4.0)(pino-pretty@13.2.0)(supports-color@8.1.1)(youch@4.1.1))(typescript@6.0.3)(vue@3.5.42(typescript@6.0.3))
+        version: 0.2.4(patch_hash=08170f33c1fefab76453b29bf47b6ade2fc6f3046688aa810922c60bedeafc85)(@adonisjs/assembler@8.6.0(typescript@6.0.3))(@adonisjs/core@7.6.0(@adonisjs/assembler@8.6.0(typescript@6.0.3))(@vinejs/vine@4.4.0)(pino-pretty@13.2.0)(supports-color@8.1.1)(youch@4.1.1))(typescript@6.0.3)(vue@3.5.42(typescript@6.0.3))
       '@tuyau/core':
         specifier: ^1.2.2
         version: 1.2.3(@adonisjs/assembler@8.6.0(typescript@6.0.3))(@adonisjs/core@7.6.0(@adonisjs/assembler@8.6.0(typescript@6.0.3))(@vinejs/vine@4.4.0)(pino-pretty@13.2.0)(supports-color@8.1.1)(youch@4.1.1))
@@ -270,7 +273,7 @@ importers:
         version: 2.1.0
       '@rlanz/socket':
         specifier: 0.2.4
-        version: 0.2.4(@adonisjs/assembler@8.6.0(typescript@6.0.3))(@adonisjs/core@7.6.0(@adonisjs/assembler@8.6.0(typescript@6.0.3))(@vinejs/vine@4.4.0)(pino-pretty@13.2.0)(supports-color@8.1.1)(youch@4.1.1))(typescript@6.0.3)(vue@3.5.42(typescript@6.0.3))
+        version: 0.2.4(patch_hash=08170f33c1fefab76453b29bf47b6ade2fc6f3046688aa810922c60bedeafc85)(@adonisjs/assembler@8.6.0(typescript@6.0.3))(@adonisjs/core@7.6.0(@adonisjs/assembler@8.6.0(typescript@6.0.3))(@vinejs/vine@4.4.0)(pino-pretty@13.2.0)(supports-color@8.1.1)(youch@4.1.1))(typescript@6.0.3)(vue@3.5.42(typescript@6.0.3))
       '@vpwa/shared':
         specifier: workspace:*
         version: link:../../packages/shared
@@ -4984,7 +4987,7 @@ snapshots:
       vite: 8.3.0(@types/node@22.20.2)(jiti@2.7.0)(sass-embedded@1.104.1)(sass@1.104.1)(terser@5.51.2)
       vue: 3.5.42(typescript@6.0.3)
 
-  '@rlanz/socket@0.2.4(@adonisjs/assembler@8.6.0(typescript@6.0.3))(@adonisjs/core@7.6.0(@adonisjs/assembler@8.6.0(typescript@6.0.3))(@vinejs/vine@4.4.0)(pino-pretty@13.2.0)(supports-color@8.1.1)(youch@4.1.1))(typescript@6.0.3)(vue@3.5.42(typescript@6.0.3))':
+  '@rlanz/socket@0.2.4(patch_hash=08170f33c1fefab76453b29bf47b6ade2fc6f3046688aa810922c60bedeafc85)(@adonisjs/assembler@8.6.0(typescript@6.0.3))(@adonisjs/core@7.6.0(@adonisjs/assembler@8.6.0(typescript@6.0.3))(@vinejs/vine@4.4.0)(pino-pretty@13.2.0)(supports-color@8.1.1)(youch@4.1.1))(typescript@6.0.3)(vue@3.5.42(typescript@6.0.3))':
     dependencies:
       '@adonisjs/core': 7.6.0(@adonisjs/assembler@8.6.0(typescript@6.0.3))(@vinejs/vine@4.4.0)(pino-pretty@13.2.0)(supports-color@8.1.1)(youch@4.1.1)
       '@boringnode/bus': 0.10.0

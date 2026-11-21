@@ -22,13 +22,13 @@ export type ChannelType = 'public' | 'private'
 
 const KICK_VOTE_THRESHOLD = 3
 
-async function disconnectSubscribers(channelId: string, userId?: string) {
+async function evictSubscribers(channelId: string, userId?: string) {
   const presence = await app.container.make('socket.presence')
   const channel = `channels/${channelId}`
 
   for (const raw of presence.getLocalSockets(channel)) {
     if (!userId || presence.getLocalUser(channel, raw.id)?.id === userId) {
-      socket.getSocket(raw.id)?.disconnect()
+      await socket.evict(raw.id, channel)
     }
   }
 }
@@ -49,7 +49,7 @@ export default class ChannelService {
       }
       await Promise.all(updates)
     } finally {
-      await disconnectSubscribers(channel.id)
+      await evictSubscribers(channel.id)
     }
   }
 
@@ -87,7 +87,7 @@ export default class ChannelService {
       }
       await Promise.all(updates)
     } finally {
-      await disconnectSubscribers(channelId)
+      await evictSubscribers(channelId)
     }
     return true
   }
@@ -235,7 +235,7 @@ export default class ChannelService {
     try {
       await publishChannelSnapshot(userId)
     } finally {
-      await disconnectSubscribers(channel.id, userId)
+      await evictSubscribers(channel.id, userId)
     }
     await publishMemberSnapshot(channel.id)
   }
@@ -265,7 +265,7 @@ export default class ChannelService {
     try {
       await publishChannelSnapshot(targetUser.id)
     } finally {
-      await disconnectSubscribers(channel.id, targetUser.id)
+      await evictSubscribers(channel.id, targetUser.id)
     }
     await publishMemberSnapshot(channel.id)
   }
@@ -362,7 +362,7 @@ export default class ChannelService {
       try {
         await publishChannelSnapshot(targetUser.id)
       } finally {
-        await disconnectSubscribers(channel.id, targetUser.id)
+        await evictSubscribers(channel.id, targetUser.id)
       }
       await publishMemberSnapshot(channel.id)
     }

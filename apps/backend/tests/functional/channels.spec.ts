@@ -359,8 +359,7 @@ test.group('Channels endpoints (/channels)', (group) => {
     const presence = await app.container.make('socket.presence')
     const raw = { id: randomUUID(), data: {}, connection: {} as never }
     presence.join(`channels/${channelId}`, raw, { id: member.id })
-    const disconnect = mock.fn()
-    const getSocket = mock.method(socket, 'getSocket', () => ({ disconnect }) as never)
+    const evict = mock.method(socket, 'evict', async () => true)
     const broadcast = socket.fake()
 
     try {
@@ -376,10 +375,11 @@ test.group('Channels endpoints (/channels)', (group) => {
       broadcast.assertEmittedTo(`channels/${channelId}`, 'members:updated', {
         data: { channelId, members: [owner.serialize()] },
       })
-      assert.equal(disconnect.mock.callCount(), 1)
+      assert.equal(evict.mock.callCount(), 1)
+      assert.deepEqual(evict.mock.calls[0]!.arguments, [raw.id, `channels/${channelId}`])
     } finally {
       broadcast.restore()
-      getSocket.mock.restore()
+      evict.mock.restore()
       presence.leave(`channels/${channelId}`, raw)
     }
 

@@ -73,6 +73,10 @@ class RealtimeSocketService {
     try {
       socket = new Socket({ url: API_URL, autoReconnect: false });
       this.socket = socket;
+      socket.on<{ channel: string }>('channel:evicted', ({ channel }) => {
+        if (socket !== this.socket || !channel.startsWith('channels/')) return;
+        this.channels.delete(channel.slice('channels/'.length));
+      });
       socket.on('disconnect', () => {
         if (socket !== this.socket) return;
         this.clearConnection();
