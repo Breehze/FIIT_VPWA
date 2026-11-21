@@ -25,7 +25,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, onMounted, onUnmounted } from 'vue';
+import { ref, onMounted } from 'vue';
 import LeftSidebar from '@/components/LeftSidebar.vue';
 import RightSidebar from '@/components/RightSidebar.vue';
 import ChannelHeader from '@/components/ChannelHeader.vue';
@@ -33,63 +33,12 @@ import { useChannels } from '@/composables/useChannels';
 import ChatFeed from '@/components/ChatFeed.vue';
 import CmdLine from '@/components/CmdLine.vue';
 import TypingStatus from '@/components/TypingStatus.vue';
-import { useAuth } from '@/composables/useAuth';
-import { useChat } from '@/composables/useChat';
-import { useTyping } from '@/composables/useTyping';
-import { realtimeSocketService } from '@/services/realtimeSocket.service';
+import { useChatSession } from '@/composables/useChatSession';
 
 const isMounted = ref(false);
 
-const { currentUser } = useAuth();
-const {
-  activeChannel,
-  channelsLoaded,
-  setChannels,
-  resetChannels,
-  setMembers,
-  setKickVotes,
-  setInvites,
-  setUserPresence,
-} = useChannels();
-const { receiveMsg, loadInitialMsgs } = useChat();
-const { updateTypingDraft, clearTypingDrafts } = useTyping();
-
-watch(
-  () => currentUser.value?.id,
-  (userId) => {
-    realtimeSocketService.stop();
-    clearTypingDrafts();
-    resetChannels();
-
-    if (userId) {
-      realtimeSocketService.start(userId, {
-        onChannels: setChannels,
-        onReconnect: () => void loadInitialMsgs(),
-        onMessage: receiveMsg,
-        onTyping: (channelId, draft) => {
-          updateTypingDraft(channelId, draft);
-        },
-        onInvites: setInvites,
-        onMembers: setMembers,
-        onKickVotes: setKickVotes,
-        onUserPresence: (users) => {
-          setUserPresence(users);
-          const ownPresence = users.find((user) => user.id === currentUser.value?.id);
-          if (ownPresence && currentUser.value) {
-            currentUser.value.state = ownPresence.state;
-          }
-        },
-      });
-    }
-  },
-  { immediate: true },
-);
-
-onUnmounted(() => {
-  realtimeSocketService.stop();
-  clearTypingDrafts();
-  resetChannels();
-});
+const { activeChannel, channelsLoaded } = useChannels();
+useChatSession();
 
 onMounted(() => {
   isMounted.value = true;

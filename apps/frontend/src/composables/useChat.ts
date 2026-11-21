@@ -1,4 +1,4 @@
-import { ref, watch } from 'vue';
+import { ref } from 'vue';
 import type { Msg } from '@vpwa/shared';
 import { fetchChannelMessages } from '@/services/chatActions.service';
 import { realtimeSocketService } from '@/services/realtimeSocket.service';
@@ -16,39 +16,22 @@ const MAX_TRACKED_MESSAGES = 1000;
 export function useChat() {
   const { activeChannel, activeChannelMembers } = useChannels();
   const { currentUser } = useAuth();
-  const { addUnreadMessage, markChannelAsRead, notifyIncomingMessage } = useNotifications();
+  const { addUnreadMessage, notifyIncomingMessage } = useNotifications();
 
-  watch(
-    () => activeChannel.value?.id,
-    (newChannelId) => {
-      if (newChannelId) {
-        void loadInitialMsgs();
-        markChannelAsRead(newChannelId);
-      } else {
-        activeMsgs.value = [];
-      }
-    },
-    { immediate: true },
-  );
-
-  watch(
-    () => currentUser.value?.state,
-    (newStatus, oldStatus) => {
-      if (oldStatus !== 'Offline' || newStatus !== 'Online') {
-        return;
-      }
-
-      void loadInitialMsgs().catch((error) => {
-        console.error('Failed to refresh messages:', error);
-      });
-    },
-  );
+  function resetChat(): void {
+    loadVersion++;
+    activeMsgs.value = [];
+    hasMoreMsgs.value = true;
+    scrollTriggers.value = 0;
+    receivedMessageKeys.clear();
+  }
 
   async function loadInitialMsgs(): Promise<void> {
     const activeChannelId = activeChannel.value?.id ?? null;
     const version = ++loadVersion;
-    if (!activeChannelId) return;
     activeMsgs.value = [];
+    hasMoreMsgs.value = true;
+    if (!activeChannelId) return;
     try {
       const messages = await fetchChannelMessages(activeChannelId);
       if (version !== loadVersion || activeChannel.value?.id !== activeChannelId) return;
@@ -68,6 +51,7 @@ export function useChat() {
 
   async function loadFollowingMsgs(): Promise<void> {
     const activeChannelId = activeChannel.value?.id ?? null;
+    const version = loadVersion;
     if (!activeMsgs.value.length || !activeChannelId) {
       return;
     }
@@ -79,7 +63,7 @@ export function useChat() {
 
     try {
       const nextMsgs = await fetchChannelMessages(activeChannelId, 10, lastMsgShown.id);
-      if (activeChannel.value?.id !== activeChannelId) return;
+      if (version !== loadVersion || activeChannel.value?.id !== activeChannelId) return;
       activeMsgs.value = [
         ...nextMsgs.filter((m) => !activeMsgs.value.some((existing) => existing.id === m.id)),
         ...activeMsgs.value,
@@ -160,5 +144,6 @@ export function useChat() {
     getSender,
     sendMsg,
     receiveMsg,
+    resetChat,
   };
 }
