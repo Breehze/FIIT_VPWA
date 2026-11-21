@@ -7,3 +7,5 @@ allowBuilds:
   better-sqlite3: true
   esbuild: true
   fsevents: true
+patchedDependencies:
+  '@rlanz/socket@0.2.4': patches/@rlanz__socket@0.2.4.patch
