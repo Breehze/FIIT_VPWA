@@ -29,7 +29,7 @@
       :active-channel-id="activeChannelId"
       :current-user-id="currentUser?.id"
       @select-channel="onSelectChannel"
-      @create-channel="showCreateChannel = true"
+      @create-channel="openCreateChannel"
     />
     <CreateChannelDialog
       v-model="showCreateChannel"
@@ -54,7 +54,7 @@ import PendingInvites from './PendingInvites.vue';
 import ChannelList from './ChannelList.vue';
 import CreateChannelDialog from '@/components/CreateChannelDialog.vue';
 import type { Channel, ChannelType } from '@vpwa/shared';
-import { ref, watch } from 'vue';
+import { ref } from 'vue';
 
 const { currentUser, logout } = useAuth();
 const { updateStatus, updateMentionOnlyNotif } = useUserActions();
@@ -111,11 +111,10 @@ async function handleRejectInvite(inviteId: string): Promise<void> {
   await processInviteResponse(inviteId, 'reject');
 }
 
-watch(showCreateChannel, (isOpen) => {
-  if (isOpen) {
-    createChannelError.value = '';
-  }
-});
+function openCreateChannel(): void {
+  createChannelError.value = '';
+  showCreateChannel.value = true;
+}
 
 function onSelectChannel(channel: Channel) {
   selectChannel(channel.id);
