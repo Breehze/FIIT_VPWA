@@ -17,7 +17,7 @@
           </p>
           <p class="auth-switch text-center q-mt-md q-mb-none">
             New here?
-            <span class="auth-switch-link" @click="isLoginForm = false">Create an account</span>
+            <span class="auth-switch-link" @click="switchForm(false)">Create an account</span>
           </p>
         </q-card>
       </div>
@@ -33,7 +33,7 @@
           </p>
           <p class="auth-switch text-center q-mt-md q-mb-none">
             Already have an account?
-            <span class="auth-switch-link" @click="isLoginForm = true">Sign in</span>
+            <span class="auth-switch-link" @click="switchForm(true)">Sign in</span>
           </p>
         </q-card>
       </div>
@@ -49,7 +49,7 @@
 <script setup lang="ts">
 import LoginForm from '@/components/LoginForm.vue';
 import RegisterForm from '@/components/RegisterForm.vue';
-import { ref, watch } from 'vue';
+import { ref } from 'vue';
 import { useAuth } from '@/composables/useAuth';
 import type { LoginDto, RegisterDto } from '@/services/auth.service';
 
@@ -58,9 +58,10 @@ const { login, register } = useAuth();
 const isLoginForm = ref(true);
 const errorMessage = ref<string | null>(null);
 
-watch(isLoginForm, () => {
+function switchForm(showLogin: boolean): void {
+  isLoginForm.value = showLogin;
   errorMessage.value = null;
-});
+}
 
 async function loginHandler(loginInfo: LoginDto): Promise<void> {
   errorMessage.value = null;
@@ -77,7 +78,7 @@ async function registerHandler(registerInfo: RegisterDto): Promise<void> {
 
   try {
     await register(registerInfo);
-    isLoginForm.value = true;
+    switchForm(true);
   } catch (error) {
     errorMessage.value =
       error instanceof Error ? error.message : 'Registration failed. Please try again.';
