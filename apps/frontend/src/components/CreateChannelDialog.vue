@@ -1,5 +1,9 @@
 <template>
-  <q-dialog :model-value="modelValue" @update:model-value="emit('update:modelValue', $event)">
+  <q-dialog
+    :model-value="modelValue"
+    @update:model-value="emit('update:modelValue', $event)"
+    @hide="resetForm"
+  >
     <q-card class="create-channel-card">
       <q-card-section class="text-center">
         <div class="text-h4 q-mb-md">🌺</div>
@@ -73,10 +77,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue';
+import { ref } from 'vue';
 import type { ChannelType } from '@vpwa/shared';
 
-const props = defineProps<{
+defineProps<{
   modelValue: boolean;
   errorMessage?: string;
 }>();
@@ -89,15 +93,10 @@ const emit = defineEmits<{
 const name = ref('');
 const channelType = ref<ChannelType>('public');
 
-watch(
-  () => props.modelValue,
-  (isOpen) => {
-    if (!isOpen) {
-      name.value = '';
-      channelType.value = 'public';
-    }
-  },
-);
+function resetForm(): void {
+  name.value = '';
+  channelType.value = 'public';
+}
 
 function handleCreate(): void {
   const cleanName = name.value.trim();
