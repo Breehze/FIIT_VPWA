@@ -127,7 +127,8 @@
 
 <script setup lang="ts">
 import type { User, UserState } from '@vpwa/shared';
-import { computed, ref, onMounted, onUnmounted } from 'vue';
+import { computed, onMounted, onUnmounted } from 'vue';
+import { useNotifications } from '@/composables/useNotifications';
 
 const props = defineProps<{
   user: User | null;
@@ -150,38 +151,20 @@ const emit = defineEmits<{
   (e: 'notificationChange', mentionsOnly: boolean): void;
 }>();
 
-const notificationPermission = ref<NotificationPermission | 'unsupported'>('unsupported');
-const enablingNotifications = ref(false);
-
-function checkNotificationPermission(): void {
-  if (typeof window === 'undefined' || !('Notification' in window)) {
-    notificationPermission.value = 'unsupported';
-    return;
-  }
-
-  notificationPermission.value = Notification.permission;
-}
-
-async function enableNotifications(): Promise<void> {
-  if (notificationPermission.value !== 'default') return;
-
-  enablingNotifications.value = true;
-
-  try {
-    notificationPermission.value = await Notification.requestPermission();
-  } finally {
-    enablingNotifications.value = false;
-    checkNotificationPermission();
-  }
-}
+const {
+  notificationPermission,
+  enablingNotifications,
+  enableNotifications,
+  refreshNotificationPermission,
+} = useNotifications();
 
 onMounted(() => {
-  checkNotificationPermission();
-  window.addEventListener('focus', checkNotificationPermission);
+  refreshNotificationPermission();
+  window.addEventListener('focus', refreshNotificationPermission);
 });
 
 onUnmounted(() => {
-  window.removeEventListener('focus', checkNotificationPermission);
+  window.removeEventListener('focus', refreshNotificationPermission);
 });
 </script>
 

@@ -1,6 +1,7 @@
 import { reactive, computed } from 'vue';
 import { useQuasar } from 'quasar';
 import { useAuth } from '@/composables/useAuth';
+import { browserNotificationsService } from '@/services/browserNotifications.service';
 
 const unreadCounts = reactive<Record<string, number>>({});
 
@@ -55,22 +56,14 @@ export function useNotifications() {
       if (!mentionPattern.test(messageText)) return;
     }
 
-    if (typeof window === 'undefined' || !('Notification' in window)) {
-      return;
-    }
-
-    if (Notification.permission !== 'granted') return;
-
-    try {
-      new Notification(`New message from ${senderName}`, {
-        body: messageText.slice(0, 100),
-      });
-    } catch (error) {
-      console.error('Failed to display notification:', error);
-    }
+    browserNotificationsService.show(`New message from ${senderName}`, messageText.slice(0, 100));
   }
 
   return {
+    notificationPermission: browserNotificationsService.permission,
+    enablingNotifications: browserNotificationsService.requestingPermission,
+    enableNotifications: browserNotificationsService.requestPermission,
+    refreshNotificationPermission: browserNotificationsService.refreshPermission,
     unreadCounts,
     getUnreadCount,
     markChannelAsRead,
