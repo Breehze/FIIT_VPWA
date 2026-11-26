@@ -7,17 +7,11 @@ import User from '#models/user'
 import UserChannel from '#models/user_channel'
 import Channel from '#models/channel'
 import Msg from '#models/msg'
+import { serializeMessage } from '#services/message_serializer'
 import { publishMemberSnapshot, type MemberSnapshot } from '#services/member_snapshot_service'
 import { publishKickVoteSnapshot } from '#services/kick_vote_snapshot_service'
 
-type MessageEvent = {
-  id: number
-  channelId: string
-  senderId: string
-  contentType: 'text'
-  textContent: string
-  createdAt: string
-}
+type MessageEvent = ReturnType<typeof serializeMessage>
 
 type LiveEvents = {
   'message:created': MessageEvent
@@ -104,14 +98,7 @@ export default class MessagesChannel extends BaseChannel<User, LiveEvents> {
       return saved
     })
 
-    const event: MessageEvent = {
-      id: message.id,
-      channelId,
-      senderId: userId,
-      contentType: 'text',
-      textContent: text,
-      createdAt: message.createdAt.toISO()!,
-    }
+    const event = serializeMessage(message, socket.getUserOrFail())
 
     this.broadcast('message:created', event)
     return event

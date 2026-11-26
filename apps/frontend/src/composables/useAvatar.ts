@@ -14,7 +14,10 @@ const activeUserColor = '#c9b3ff';
 export function useAvatar() {
   const { currentUser } = useAuth();
 
-  function getAvatarColor(member: User, showDndColor = false): string {
+  function getAvatarColor(
+    member: Pick<User, 'id'> & Partial<Pick<User, 'state'>>,
+    showDndColor = false,
+  ): string {
     if (showDndColor && member.state === 'Offline') {
       return offlineAvatarColor;
     }

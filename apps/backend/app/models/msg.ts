@@ -23,7 +23,9 @@ export default class Msg extends MsgSchema {
   declare mentions: HasMany<typeof MsgMention>
 
   static async listForChannel(channelId: string, beforeId?: number, limit = 20): Promise<Msg[]> {
-    const query = this.query().where('channelId', channelId)
+    const query = this.query()
+      .where('channelId', channelId)
+      .preload('sender', (sender) => sender.select('id', 'nick', 'name', 'lastName'))
 
     if (beforeId !== undefined) {
       query.where('id', '<', beforeId)
