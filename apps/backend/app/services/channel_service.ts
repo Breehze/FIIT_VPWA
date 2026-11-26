@@ -9,6 +9,7 @@ import UserChannel from '#models/user_channel'
 import Invite from '#models/invite'
 import VoteKick from '#models/vote_kick'
 import Msg from '#models/msg'
+import { serializeMessage } from '#services/message_serializer'
 import { publishChannelSnapshot } from '#services/channel_snapshot_service'
 import { publishInviteSnapshot } from '#services/invite_snapshot_service'
 import { publishMemberSnapshot } from '#services/member_snapshot_service'
@@ -149,16 +150,12 @@ export default class ChannelService {
   /**
    * GET /channels/:channelId/msgs?beforeId=...&limit=...
    */
-  async getChannelMessages(
-    userId: string,
-    channelId: string,
-    beforeId?: number,
-    limit = 20
-  ): Promise<Msg[]> {
+  async getChannelMessages(userId: string, channelId: string, beforeId?: number, limit = 20) {
     const channel = await Channel.findOrFail(channelId)
     await UserChannel.requireActiveForUser(channel.id, userId)
 
-    return Msg.listForChannel(channel.id, beforeId, limit)
+    const messages = await Msg.listForChannel(channel.id, beforeId, limit)
+    return messages.map((message) => serializeMessage(message, message.sender ?? null))
   }
 
   /**

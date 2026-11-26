@@ -14,7 +14,7 @@ const receivedMessageKeys = new Set<string>();
 const MAX_TRACKED_MESSAGES = 1000;
 
 export function useChat() {
-  const { activeChannel, activeChannelMembers } = useChannels();
+  const { activeChannel } = useChannels();
   const { currentUser } = useAuth();
   const { addUnreadMessage, notifyIncomingMessage } = useNotifications();
 
@@ -80,14 +80,6 @@ export function useChat() {
     await realtimeSocketService.sendMessage(channelId, msg);
   }
 
-  function getSender(senderId: string | null) {
-    if (!senderId) return undefined;
-    return (
-      activeChannelMembers.value.find((member) => member.id === senderId) ??
-      (currentUser.value?.id === senderId ? currentUser.value : undefined)
-    );
-  }
-
   function receiveMsg(newMsg: Msg): void {
     const user = currentUser.value;
 
@@ -118,11 +110,11 @@ export function useChat() {
     }
 
     if (newMsg.senderId !== user.id) {
-      const sender = getSender(newMsg.senderId);
+      const sender = newMsg.sender;
 
       notifyIncomingMessage(
         newMsg.senderId,
-        sender ? `${sender.name} ${sender.lastName}`.trim() : 'Someone',
+        sender ? `${sender.name} ${sender.lastName}`.trim() || sender.nick : 'Deleted user',
         newMsg.textContent,
       );
     }
@@ -141,7 +133,6 @@ export function useChat() {
     scrollTriggers,
     loadInitialMsgs,
     loadFollowingMsgs,
-    getSender,
     sendMsg,
     receiveMsg,
     resetChat,

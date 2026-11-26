@@ -198,9 +198,54 @@ test.group('Socket messages', (group) => {
 
     assert.equal(message.textContent, 'Hello!')
     assert.equal(message.senderId, owner.id)
+    assert.deepEqual(message.sender, {
+      id: owner.id,
+      nick: owner.nick,
+      name: owner.name,
+      lastName: owner.lastName,
+    })
     const saved = await Msg.findOrFail(message.id)
     assert.equal(saved.textContent, 'Hello!')
     assert.deepEqual(events, [{ event: 'message:created', data: message }])
+    const history = await new ChannelService().getChannelMessages(owner.id, room.id)
+    assert.deepEqual(history, [message])
+  })
+
+  test('history includes departed authors and handles deleted users', async ({
+    client,
+    assert,
+  }) => {
+    const owner = await createUser()
+    const author = await createUser()
+    const room = await Channel.createWithOwner(owner.id, `authors-${randomUUID()}`, 'public')
+    const membership = await UserChannel.addMember(room.id, author.id)
+    await Msg.create({
+      channelId: room.id,
+      senderId: author.id,
+      contentType: 'text',
+      textContent: 'Still here after I leave',
+    })
+    await membership.delete()
+
+    const history = await client.get(`/channels/${room.id}/msgs`).withGuard('web').loginAs(owner)
+    history.assertStatus(200)
+    assert.deepEqual(history.body()[0].sender, {
+      id: author.id,
+      nick: author.nick,
+      name: author.name,
+      lastName: author.lastName,
+    })
+
+    // The schema restricts deletion until message references are cleared.
+    await Msg.query().where('senderId', author.id).update({ senderId: null })
+    await author.delete()
+    const afterDeletion = await client
+      .get(`/channels/${room.id}/msgs`)
+      .withGuard('web')
+      .loginAs(owner)
+    afterDeletion.assertStatus(200)
+    assert.isNull(afterDeletion.body()[0].senderId)
+    assert.isNull(afterDeletion.body()[0].sender)
   })
 
   test('rejects non-members and invalid messages without saving', async ({ assert }) => {

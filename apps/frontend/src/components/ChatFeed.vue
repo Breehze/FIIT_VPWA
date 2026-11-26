@@ -34,23 +34,23 @@
         <div class="row items-start no-wrap">
           <q-avatar
             :style="{
-              backgroundColor: getMessageAvatarColor(msg.senderId),
+              backgroundColor: msg.sender ? getAvatarColor(msg.sender) : '#cbd5e1',
             }"
             text-color="white"
             size="40px"
             class="profile-avatar"
           >
-            {{ getInitials(msg.senderId) }}
+            {{ getInitials(msg.sender) }}
           </q-avatar>
 
           <div class="col message-content q-ml-sm q-mt-xs">
             <div class="row items-center q-gutter-x-sm">
               <span>
-                {{ getSenderName(msg.senderId) }}
+                {{ getSenderName(msg.sender) }}
               </span>
 
-              <span v-if="getSender(msg.senderId)" class="message-info text-caption">
-                @{{ getSender(msg.senderId)?.nick }}
+              <span v-if="msg.sender" class="message-info text-caption">
+                @{{ msg.sender.nick }}
               </span>
 
               <span class="message-info text-caption">
@@ -81,6 +81,7 @@
 
 <script setup lang="ts">
 import { watch, nextTick, ref } from 'vue';
+import type { MsgSender } from '@vpwa/shared';
 import { useChat } from '@/composables/useChat';
 import { useChannels } from '@/composables/useChannels';
 import { useAvatar } from '@/composables/useAvatar';
@@ -90,7 +91,7 @@ import VoteKickCard from '@/components/VoteKickCard.vue';
 const { currentUser } = useAuth();
 const { getAvatarColor } = useAvatar();
 const { activeChannel, activeChannelMembers, activeKickVotes, kickMember } = useChannels();
-const { activeMsgs, hasMoreMsgs, scrollTriggers, loadFollowingMsgs, getSender } = useChat();
+const { activeMsgs, hasMoreMsgs, scrollTriggers, loadFollowingMsgs } = useChat();
 const voteError = ref<string | null>(null);
 
 async function handleVote(nick: string): Promise<void> {
@@ -105,14 +106,6 @@ async function handleVote(nick: string): Promise<void> {
 
 const scrollContainer = ref<HTMLElement | null>(null);
 
-function getMessageAvatarColor(senderId: string | null): string {
-  const user = getSender(senderId);
-
-  if (!user) return '#cbd5e1';
-
-  return getAvatarColor(user);
-}
-
 function isMentioned(text: string): boolean {
   const nick = currentUser.value?.nick;
 
@@ -121,17 +114,15 @@ function isMentioned(text: string): boolean {
   return splitMessage(text).some((part) => part.toLowerCase() === `@${nick.toLowerCase()}`);
 }
 
-function getSenderName(senderId: string | null): string {
-  if (!senderId) return 'DeletedUser';
-  const user = getSender(senderId);
-  return user ? `${user.name} ${user.lastName}`.trim() : 'Unknown user';
+function getSenderName(sender: MsgSender | null): string {
+  return sender ? `${sender.name} ${sender.lastName}`.trim() || sender.nick : 'Deleted user';
 }
 
-function getInitials(senderId: string | null): string {
-  if (!senderId) return 'DU';
-  const user = getSender(senderId);
-  if (!user) return '?';
-  return `${user.name.charAt(0)}${user.lastName.charAt(0)}`.toUpperCase();
+function getInitials(sender: MsgSender | null): string {
+  if (!sender) return 'DU';
+  return (
+    `${sender.name.charAt(0)}${sender.lastName.charAt(0)}` || sender.nick.charAt(0)
+  ).toUpperCase();
 }
 
 async function onLoad(index: number, done: (stop?: boolean) => void) {
