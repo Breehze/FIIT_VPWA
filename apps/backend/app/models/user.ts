@@ -24,7 +24,7 @@ export default class User extends compose(
 
   // These existing database columns use camelCase rather than Lucid's snake_case default.
   @column({ columnName: 'lastName' })
-  declare lastName: string | null
+  declare lastName: string
 
   @column({ columnName: 'mentionOnlyNotif' })
   declare mentionOnlyNotif: boolean

@@ -9,8 +9,8 @@ export interface RegisterDto {
   nickname: string;
   password: string;
   passwordConfirmation: string;
-  name?: string;
-  lastName?: string;
+  name: string;
+  lastName: string;
   email: string;
 }
 
@@ -62,8 +62,8 @@ class AuthService {
         email: data.email,
         password: data.password,
         passwordConfirmation: data.passwordConfirmation,
-        name: data.name ?? null,
-        lastName: data.lastName ?? null,
+        name: data.name.trim(),
+        lastName: data.lastName.trim(),
       }),
     });
 
