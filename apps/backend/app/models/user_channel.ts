@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import { Exception } from '@adonisjs/core/exceptions'
+import db from '@adonisjs/lucid/services/db'
 import { UserChannelSchema } from '#database/schema'
 import { belongsTo } from '@adonisjs/lucid/orm'
 import type { BelongsTo } from '@adonisjs/lucid/types/relations'
@@ -55,15 +56,26 @@ export default class UserChannel extends UserChannelSchema {
     userId: string,
     trx?: TransactionClientContract
   ): Promise<UserChannel> {
-    return this.create(
-      {
+    await (trx ?? db)
+      .insertQuery()
+      .table(this.table)
+      .insert({
         id: randomUUID(),
-        channelId,
-        userId,
+        channel_id: channelId,
+        user_id: userId,
         banned: false,
-      },
-      trx ? { client: trx } : {}
-    )
+      })
+      .onConflict(['channel_id', 'user_id'])
+      .ignore()
+
+    const membership = await this.query(trx ? { client: trx } : {})
+      .where('channelId', channelId)
+      .where('userId', userId)
+      .firstOrFail()
+    if (membership.banned) {
+      throw new Exception('You are banned from this channel', { status: 403 })
+    }
+    return membership
   }
 
   async markBanned(): Promise<void> {
