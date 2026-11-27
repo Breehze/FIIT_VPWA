@@ -10,7 +10,7 @@
             placeholder="John"
             outlined
             color="primary"
-            :rules="[(val) => !!val || 'First name is required!']"
+            :rules="[(val) => !!val?.trim() || 'First name is required!']"
             hide-bottom-space
           />
         </div>
@@ -23,7 +23,7 @@
             placeholder="Doe"
             outlined
             color="primary"
-            :rules="[(val) => !!val || 'Last name is required!']"
+            :rules="[(val) => !!val?.trim() || 'Last name is required!']"
             hide-bottom-space
           />
         </div>

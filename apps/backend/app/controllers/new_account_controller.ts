@@ -10,8 +10,8 @@ export default class NewAccountController {
 
     const user = await User.create({
       id: randomUUID(),
-      name: name ?? null,
-      lastName: lastName ?? null,
+      name,
+      lastName,
       nick,
       email,
       password,

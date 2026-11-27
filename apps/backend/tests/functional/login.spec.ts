@@ -10,6 +10,8 @@ test.group('Login', (group) => {
     const email = `login_${randomUUID()}@example.com`
     await User.create({
       id: randomUUID(),
+      name: 'Login',
+      lastName: 'Test',
       nick: `login_${randomUUID()}`,
       email,
       password: 'password123',
@@ -19,5 +21,28 @@ test.group('Login', (group) => {
 
     const response = await client.post('/login').json({ email, password: 'password123' })
     response.assertStatus(200)
+  })
+
+  test('POST /register requires non-empty name and lastName', async ({ client }) => {
+    const unique = randomUUID().slice(0, 8)
+    const missingNames = await client.post('/register').json({
+      nick: `reg_${unique}`,
+      email: `reg_${unique}@example.com`,
+      password: 'password123',
+      passwordConfirmation: 'password123',
+      name: '   ',
+      lastName: null as never,
+    })
+    missingNames.assertStatus(422)
+
+    const valid = await client.post('/register').json({
+      nick: `reg_${unique}`,
+      email: `reg_${unique}@example.com`,
+      password: 'password123',
+      passwordConfirmation: 'password123',
+      name: 'Ada',
+      lastName: 'Lovelace',
+    })
+    valid.assertStatus(200)
   })
 })
